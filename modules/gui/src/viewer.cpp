@@ -884,7 +884,7 @@ bool Viewer::loadHeightmapFromTIFF(const string &filename)
     string fname_yaml = _lastMapPureFileName + ".yaml";
     Yaml_Config::load_yaml_file_into_param(fname_yaml.c_str());
     M_INFO1("Re-loading configuration file .ini for map");
-    M_INFO1("Loaded yaml_param %f",Yaml_Config::yaml_param["max_ramp_angle"].as<float>());
+    //M_INFO1("Loaded yaml_param %f",Yaml_Config::yaml_param["max_ramp_angle"].as<float>());
 
         
     int w = _geo->width();
