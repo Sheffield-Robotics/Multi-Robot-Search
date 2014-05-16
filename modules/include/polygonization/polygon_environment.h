@@ -49,6 +49,9 @@ namespace polygonization {
 
         void extract_polygon( Alpha_shape::vertex_handle v );
         
+        void get_visibility_polygon(Segment s);
+        
+        
         void compute_to_master_distances(int goal);
         double get_distance(int i, int j);
         void set_distance(int i, int j, double d);

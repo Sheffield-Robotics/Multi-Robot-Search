@@ -174,18 +174,21 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
     return;
 }
 
-double 
+void 
     Polygon_Environment::get_visibility_polygon(Segment s)
 {
-    VisiLibity::Point obs(s.source().x(),s.source().y());
-    Visibility_Polygon vis_poly_source = 
+    VisiLibity::Point obs(
+        CGAL::to_double(s.source().x()),
+        CGAL::to_double(s.source().y()));
+    VisiLibity::Visibility_Polygon vis_poly_source = 
         VisiLibity::Visibility_Polygon(obs,*my_environment); 
     
-    VisiLibity::Point obs2(s.target().x(),s.target().y());
-    Visibility_Polygon vis_poly_target = 
-        VisiLibity::Visibility_Polygon(obs2,*my_environment); 
-    
-    
+    VisiLibity::Point obs2(
+        CGAL::to_double(s.target().x()),
+        CGAL::to_double(s.target().y()));
+    VisiLibity::Visibility_Polygon vis_poly_target = 
+        VisiLibity::Visibility_Polygon(obs2,*my_environment);  
+       
 }
 
 double 
