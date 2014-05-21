@@ -158,7 +158,8 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
 		
 	//double epsilon = 0.000000001;
     VisiLibity::Polygon a_poly;
-	
+
+    // converting master polygon to a visilibity polygon
 	Polygon::Vertex_iterator it = master_polygon->vertices_begin();
 	for ( ; it != master_polygon->vertices_end(); it++ ) {
 		VisiLibity::Point poi( CGAL::to_double((*it).x()),CGAL::to_double((*it).y()) );
@@ -188,7 +189,9 @@ void
         CGAL::to_double(s.target().y()));
     VisiLibity::Visibility_Polygon vis_poly_target = 
         VisiLibity::Visibility_Polygon(obs2,*my_environment);  
-       
+    
+    
+    // for all vertices
 }
 
 double 
