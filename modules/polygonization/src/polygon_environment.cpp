@@ -155,7 +155,17 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
 	if ( visibility_graph != NULL ) 
 		delete visibility_graph;
 	visibility_graph = new Vis_graph(master_polygon->vertices_begin(), master_polygon->vertices_end());
+	
+	this->process_master_polygon();
 		
+    return;
+}
+
+void Polygon_Environment::process_master_polygon()
+{
+	// for every vertex, i.e. endpoint of segment/edge in the 
+	// master polygon we need to compute the visibility polygon
+	// to determine visibility of segments
 	//double epsilon = 0.000000001;
     VisiLibity::Polygon a_poly;
 	
@@ -170,13 +180,12 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
 	my_environment = new VisiLibity::Environment(a_poly);
 	M_INFO3("Is it valid?.\n");
 	my_environment->is_valid( eps );
-	M_INFO3("Finished.\n");
-    return;
-}
 
-void 
-    Polygon_Environment::get_visibility_polygon(Segment s)
-{
+	for ( ; it != master_polygon->vertices_end(); it++ ) {
+		VisiLibity::Point poi( CGAL::to_double((*it).x()),CGAL::to_double((*it).y()) );
+		a_poly.push_back( poi );
+	}
+	
     VisiLibity::Point obs(
         CGAL::to_double(s.source().x()),
         CGAL::to_double(s.source().y()));
@@ -188,6 +197,20 @@ void
         CGAL::to_double(s.target().y()));
     VisiLibity::Visibility_Polygon vis_poly_target = 
         VisiLibity::Visibility_Polygon(obs2,*my_environment);  
+	
+	
+}
+
+void Polygon_Environment::process_vertex(VisiLibity::Point &p)
+{
+    VisiLibity::Visibility_Polygon vis_poly_source = 
+        VisiLibity::Visibility_Polygon(p,*my_environment); 
+}
+
+void 
+    Polygon_Environment::get_visibility_polygon(Segment s)
+{
+    
        
 }
 
