@@ -22,16 +22,19 @@ namespace polygonization {
       public:    
         Alpha_shape* A;
         Voronoi_Diagram* VD;
-		// the primary polygon (simply-connected)
+        // the primary polygon (simply-connected)
         Polygon* master_polygon;
-		Vis_graph* visibility_graph;
-		VisiLibity::Environment* my_environment;
+        Vis_graph* visibility_graph;
+        VisiLibity::Environment* my_environment;
         double** distance_mat;
         double** distance_mat2;
         Segment*** segment_mat;
         int n_polygons;
         int open_polygons;
         double _epsilon;
+        double _visi_epsilon;
+        
+        std::vector<VisiLibity::Visibility_Polygon> visi_polies;
         
         std::vector<Point> artificial_points;
         int is_artificial2( Point p );
@@ -50,7 +53,15 @@ namespace polygonization {
         void extract_polygon( Alpha_shape::vertex_handle v );
         
         void get_visibility_polygon(Segment s);
+        void process_master_polygon();
+        void process_vertex(VisiLibity::Point &p);
+        VisiLibity::Point get_visi_vertex(int i);
+        int 
+        get_segment_index_for_point( VisiLibity::Point p );
         
+        
+        KERNEL::Point_2 
+        Point_2_from_poly_vertex( VisiLibity::Point& p );        
         
         void compute_to_master_distances(int goal);
         double get_distance(int i, int j);

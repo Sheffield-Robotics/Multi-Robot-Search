@@ -52,7 +52,8 @@ class Viewer : public QGLViewer
       void setDrawGeoMapDEMImage();
       void setDrawGeoMapImage();
       void drawGraphStructure();
-      void drawVisibilityPolygons();
+      void drawVisibilityGraph();
+      void drawVisibilityPolygon();
       void drawPolygonEnvironment();
       void drawAllTrajectories();
       void drawAllTrajectoriesLines();
@@ -67,11 +68,13 @@ class Viewer : public QGLViewer
       void toggle_draw_up_to();
       void toggle_sweep_state();
       void toggle_current_step();
+      void toggle_visi_poly();
       void drawPolygonRawEnvironment();
       void drawPoly( polygonization::Polygon *poly );
       void drawVoronoiDiagram();
       void drawStrategyStep();
       void drawSegment(lineclear::Segment s);
+      void drawLine(double p1x,double p1y, double p2x, double p2y, double ground = 0);
       void draw_UAV_at(int x, int y);
       void compute_lineclear_strategy();
       //void computing_adapted_cost();
@@ -105,6 +108,7 @@ class Viewer : public QGLViewer
       int sweep_state_i;
       int current_step_i;
       int updated_cost;
+      int visi_poly_index;
       std::list<int> obstacle_sequence;
       std::list<int>::iterator obstacle_sequence_it;
       std::list<int> cleared_obstacles;
@@ -129,6 +133,7 @@ class Viewer : public QGLViewer
       bool drawStrategyStepFlag;
       bool drawPursuerExample;
       bool drawAgentSize;
+      bool drawVisiPoli;
       bool triggerDumpScreenShot;
 
    protected :

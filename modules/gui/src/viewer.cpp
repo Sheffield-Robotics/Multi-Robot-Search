@@ -33,6 +33,7 @@ Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) 
     artifical_cost = 0;
     current_blocking_cost = 0;
     draw_up_to = 0;
+    visi_poly_index = -1;
     sweep_state_i = 0;
     current_step_i = 0;
     max_height = 0;
@@ -41,6 +42,7 @@ Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) 
     setStateFileName(QString::null);
     setRobotPose = false;
     drawWireFrame = false;
+    drawVisiPoli = false;
     drawStrategyStepFlag = false;
     drawFrequinPosesFlag = false;
     drawSweepStateFlag = false;
@@ -198,6 +200,9 @@ void Viewer::draw()
     if (drawGraph)
         drawGraphStructure();
 
+    if (drawVisiPoli)
+        drawVisibilityPolygon();
+    
     if (drawPolygonEnvironmentFlag)
         drawPolygonEnvironment();
 
@@ -467,8 +472,9 @@ void Viewer::keyPressEvent(QKeyEvent *e)
     case Qt::Key_M :
         //toggle_draw_up_to();
         //toggle_sweep_state();
-        toggle_current_step();
+        //toggle_current_step();
         //test_visibility_line_cost();
+        this->toggle_visi_poly();
         break;
     case Qt::Key_O :
         this->apply_hungarian();
@@ -1179,6 +1185,16 @@ void Viewer::toggle_draw_up_to() {
     redraw = true;
 }
 
+void Viewer::toggle_visi_poly() {
+    drawVisiPoli = true;
+    visi_poly_index++;
+    if ( visi_poly_index == int( _pol->visi_polies.size() ) ) {
+        visi_poly_index = -1;
+        drawVisiPoli = false;
+    }
+    redraw = true;
+}
+
 void Viewer::drawFrequinPoses() {
     if ( _ct == NULL ) 
         return;
@@ -1755,7 +1771,6 @@ void Viewer::drawPolygonRawEnvironment() {
         polygonization::Polygon* poly = &((*_pol)[i]);
         this->drawPoly( poly );
     }
-
 }
 
 void Viewer::drawPoly( polygonization::Polygon *poly ) {
@@ -1785,6 +1800,38 @@ void Viewer::drawPoly( polygonization::Polygon *poly ) {
          glVertex3f(w2x,w2y, height);
         glEnd();
     }
+}
+
+void Viewer::drawVisibilityGraph()
+{
+    //
+}
+
+void Viewer::drawVisibilityPolygon()
+{
+    VisiLibity::Point poin = _pol->get_visi_vertex(visi_poly_index);
+    int x = ceil(poin.x()); int y = ceil(poin.y());
+    if ( !_map->pointInMap(x,y) )
+        return;
+    double wx,wy;
+    _map->grid2world(wx,wy,x,y);
+    double height = _map->getCellsMM()[x][y].getHeight()/ 1000.0;
+    double h = _vis->getPursuerHeight();
+    glColor3f(0.0, 1.0, 1.0);
+    glLineWidth(3.0);
+    drawSphere(0.3,wx,wy,height + h);
+    
+    for (int j = 1; j < _pol->visi_polies[visi_poly_index].n(); j++ ) {
+        this->drawLine(
+            _pol->visi_polies[visi_poly_index][j-1].x(),_pol->visi_polies[visi_poly_index][j-1].y(),
+            _pol->visi_polies[visi_poly_index][j].x(),_pol->visi_polies[visi_poly_index][j].y()
+        );
+    }
+    int j = _pol->visi_polies[visi_poly_index].n();
+    this->drawLine(
+        _pol->visi_polies[visi_poly_index][j-1].x(),_pol->visi_polies[visi_poly_index][j-1].y(),
+        _pol->visi_polies[visi_poly_index][0].x(),_pol->visi_polies[visi_poly_index][0].y()
+    );
 }
 
 void Viewer::drawStrategyStep() 
@@ -1821,6 +1868,24 @@ void Viewer::drawSegment(lineclear::Segment s) {
     ground = max(
         _map->getCellsMM()[gx][gy].getHeight() / 1000.0,
         _map->getCellsMM()[g2x][g2y].getHeight() / 1000.0);
+    _map->grid2world(wx,wy,gx,gy);
+    _map->grid2world(w2x,w2y,g2x,g2y);
+    drawSphere(0.1,wx,wy,ground);
+    glBegin(GL_LINES);
+     glVertex3f(wx,wy, ground);
+     glVertex3f(w2x,w2y, ground);
+    glEnd();
+}
+
+void Viewer::drawLine(double p1x,double p1y, double p2x, double p2y, double ground)
+{
+    ground = this->get_max_height() / 1000.0;
+    double wx,wy,w2x,w2y;
+    int gx = ceil( p1x), gy = ceil( p1y);
+    int g2x = ceil(p2x), g2y = ceil(p2y);
+    //ground = max(
+    //    _map->getCellsMM()[gx][gy].getHeight() / 1000.0,
+    //    _map->getCellsMM()[g2x][g2y].getHeight() / 1000.0);
     _map->grid2world(wx,wy,gx,gy);
     _map->grid2world(w2x,w2y,g2x,g2y);
     drawSphere(0.1,wx,wy,ground);

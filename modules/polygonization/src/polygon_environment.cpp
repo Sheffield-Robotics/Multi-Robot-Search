@@ -9,6 +9,7 @@ namespace polygonization {
 void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
 {
     _epsilon = epsilon;
+    _visi_epsilon = 0.00000000001;
     A = alphaShape;
     Alpha_shape::vertex_iterator AS_vert_it;
     AS_vert_it = A->alpha_shape_vertices_begin();
@@ -150,62 +151,156 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
         list_i++;
     }
     M_INFO3("Finished constructing Master Polygon (%d vertices).\n", master_polygon->size());
-	
-	M_INFO3("Building visibility graph.\n");
-	if ( visibility_graph != NULL ) 
-		delete visibility_graph;
-	visibility_graph = new Vis_graph(master_polygon->vertices_begin(), master_polygon->vertices_end());
-	
-	this->process_master_polygon();
-		
+    
+    M_INFO3("Building visibility graph.\n");
+    if ( visibility_graph != NULL ) 
+        delete visibility_graph;
+    visibility_graph = new Vis_graph(master_polygon->vertices_begin(), master_polygon->vertices_end());
+    
+    this->process_master_polygon();
+        
     return;
 }
 
 void Polygon_Environment::process_master_polygon()
 {
-	// for every vertex, i.e. endpoint of segment/edge in the 
-	// master polygon we need to compute the visibility polygon
-	// to determine visibility of segments
-	//double epsilon = 0.000000001;
+    M_INFO3(" Polygon_Environment::process_master_polygon \n");
+    // for every vertex, i.e., endpoint of segment/edge in the 
+    // master polygon we need to compute the visibility polygon
+    // to determine visibility of segments
     VisiLibity::Polygon a_poly;
 
     // converting master polygon to a visilibity polygon
-	Polygon::Vertex_iterator it = master_polygon->vertices_begin();
-	for ( ; it != master_polygon->vertices_end(); it++ ) {
-		VisiLibity::Point poi( CGAL::to_double((*it).x()),CGAL::to_double((*it).y()) );
-		a_poly.push_back( poi );
-	}
-	
-	double eps = 0.0000001;
-	M_INFO3("Building Visibility Graph with VisiLibity.\n");
-	my_environment = new VisiLibity::Environment(a_poly);
-	M_INFO3("Is it valid?.\n");
-	my_environment->is_valid( eps );
-
-	for ( ; it != master_polygon->vertices_end(); it++ ) {
-		VisiLibity::Point poi( CGAL::to_double((*it).x()),CGAL::to_double((*it).y()) );
-		a_poly.push_back( poi );
-	}
-	
-    VisiLibity::Point obs(
-        CGAL::to_double(s.source().x()),
-        CGAL::to_double(s.source().y()));
-    VisiLibity::Visibility_Polygon vis_poly_source = 
-        VisiLibity::Visibility_Polygon(obs,*my_environment); 
+    Polygon::Vertex_iterator it = master_polygon->vertices_begin();
+    for ( ; it != master_polygon->vertices_end(); it++ ) {
+        VisiLibity::Point poi( CGAL::to_double((*it).x()),CGAL::to_double((*it).y()) );
+        a_poly.push_back( poi );
+        M_INFO3("Pushed back %f %f.\n", poi.x(),poi.y());
+    }
     
-    VisiLibity::Point obs2(
-        CGAL::to_double(s.target().x()),
-        CGAL::to_double(s.target().y()));
-    VisiLibity::Visibility_Polygon vis_poly_target = 
-        VisiLibity::Visibility_Polygon(obs2,*my_environment);  
-	
-	
+    M_INFO3("Building Visibility Graph with VisiLibity.\n");
+    double eps = 0.00000000001;
+    my_environment = new VisiLibity::Environment(a_poly);
+    M_INFO3("Is it valid? %d.\n",my_environment->is_valid( eps ) );
+    VisiLibity::Polygon* env_outer_poly = &((*my_environment)[0]);
+    
+    M_INFO3("Processing vertices to compute visibility polygons.\n");
+    for ( int i = 0; i < env_outer_poly->n() ; i++ ) {
+        this->process_vertex( (*env_outer_poly)[i] );
+    }
+    
+    M_INFO3("Setting up visibility flags.\n");
+    std::vector<bool> dum ( env_outer_poly->n() );
+    std::vector< vector<bool> > 
+        segment_visible_from_to(env_outer_poly->n(), dum);
+    for ( unsigned j=0; j < segment_visible_from_to.size(); j++)  
+    {  
+        for ( unsigned jj=0; jj < segment_visible_from_to.size(); jj++ ) 
+        {
+            segment_visible_from_to[j][jj] = false;
+        }
+    }
+    
+    M_INFO3("N vertices %d.\n",env_outer_poly->n());
+    for ( int ii = 0; ii < env_outer_poly->n() ; ii++ ) {
+        M_INFO3("Computing visibility flags for vertex %d.\n",ii);
+        // find the min and max indices 
+        int a = -1, b = -1;
+        KERNEL::Point_2 q(
+            this->get_visi_vertex(ii).x(), this->get_visi_vertex(ii).y() );
+        KERNEL::Point_2 v1 = Point_2_from_poly_vertex(visi_polies[ii][0]);
+        
+        //// For testing only
+        //M_INFO3("Visi poly %d has area %f \n",ii,visi_polies[ii].area());
+        //// area > 0 => vertices listed ccw, 
+        //// area < 0 => cw 
+        //// need ccw for the method below to work
+        int i = 0;
+        for ( i = 0; i < visi_polies[ii].n() ; i++) {            
+            KERNEL::Point_2 r(
+                visi_polies[ii][i].x(), visi_polies[ii][i].y() );
+            
+            M_INFO3(" --- At visi poly point %f %f \n",visi_polies[ii][i].x(),
+                visi_polies[ii][i].y());
+            KERNEL::Orientation orientation = CGAL::orientation(q,v1,r);
+            if ( orientation == CGAL::LEFT_TURN ) {
+                M_INFO3("Turning left \n");
+            } else if ( orientation == CGAL::RIGHT_TURN) {
+                M_INFO3("Turning right \n");
+                if ( a == -1 ) { // first right turn
+                    a = i-1;
+                }
+                if ( b == -1 ) { // first right turn
+                    b = i;
+                }
+            } else if ( orientation == CGAL::COLLINEAR) {
+                M_INFO3("COLLINEAR \n");
+                std::cout << "q (" << q.x() << "," << q.y() << ") ";
+                std::cout << "v1 (" << v1.x() << "," << v1.y() << ") ";
+                std::cout << "r (" << r.x() << "," << r.y() << ") ";
+                std::cout << std::endl;
+            }
+        }
+        
+        
+        // i = 1;
+//         M_INFO1(" Found a=%d, b=%d \n",a,b);
+//         KERNEL::Point_2 vi = Point_2_from_poly_vertex(visi_polies[ii][i]);
+//         KERNEL::Point_2 vb = Point_2_from_poly_vertex(visi_polies[ii][b]);
+//         KERNEL::Point_2 va;
+//         int i_segment = get_segment_index_for_point(visi_polies[ii][i]);
+//         int b_segment = get_segment_index_for_point(visi_polies[ii][b]);
+//
+//         KERNEL::Orientation_2 orientation = CGAL::orientation(q,v1,vi);
+//         while ( orientation == CGAL::LEFT_TURN
+//              || orientation == CGAL::COLLINEAR ) {
+//             // segment of visi_polies[ii][i] is visible to visi_polies[ii][b]
+//             segment_visible_from_to[i_segment][b_segment] = true;
+//             M_INFO1(" Segment starting at %d visible from %d\n",i_segment,b_segment);
+//             i++;
+//             vi = Point_2_from_poly_vertex(visi_polies[ii][i]);
+//             i_segment = get_segment_index_for_point(visi_polies[ii][i]);
+//             va = Point_2_from_poly_vertex(visi_polies[ii][a]);
+//             while ( CGAL::orientation(q,vi,vb) == CGAL::LEFT_TURN) {
+//                 a = (b+1) % visi_polies[ii].n();
+//                 b = (b+2) % visi_polies[ii].n();
+//                 va = Point_2_from_poly_vertex(visi_polies[ii][a]);
+//                 vb = Point_2_from_poly_vertex(visi_polies[ii][b]);
+//                 b_segment = get_segment_index_for_point(visi_polies[ii][b]);
+//                 // segment visi_polies[ii][i] visible to visi_polies[ii][b]
+//                 segment_visible_from_to[i_segment][b_segment] = true;
+//                 M_INFO1(" Segment starting at %d visible from %d\n",i_segment,b_segment);
+//             }
+//         }
+    }
 }
+
+KERNEL::Point_2 
+Polygon_Environment::Point_2_from_poly_vertex( VisiLibity::Point& p )
+{
+    return KERNEL::Point_2(p.x(),p.y());
+}
+
+int 
+Polygon_Environment::get_segment_index_for_point( VisiLibity::Point p ) 
+{
+    return p.index_of_projection_onto_boundary_of( *my_environment );
+}
+
 
 void Polygon_Environment::process_vertex(VisiLibity::Point &p)
 {
-    VisiLibity::Visibility_Polygon vis_poly_source = 
-        VisiLibity::Visibility_Polygon(p,*my_environment); 
+    M_INFO3("Processing vertex\n");
+    p.snap_to_boundary_of(*my_environment,_visi_epsilon);
+    p.snap_to_vertices_of(*my_environment,_visi_epsilon);
+    VisiLibity::Visibility_Polygon vis_poly = 
+        VisiLibity::Visibility_Polygon(p,*my_environment, _visi_epsilon); 
+    visi_polies.push_back(vis_poly);    
+}
+
+VisiLibity::Point Polygon_Environment::get_visi_vertex(int i)
+{
+    return (*my_environment)[0][i];
 }
 
 void 
@@ -216,13 +311,13 @@ void
 
 double 
 Polygon_Environment::shortest_path_distance_between(double x1,double y1,double x2, double y2) {
-	VisiLibity::Polyline my_shortest_path;
-	VisiLibity::Point start(x1,y1);
-	VisiLibity::Point finish(x2,y2);
-	my_shortest_path = my_environment->shortest_path(start, finish, _epsilon);
-	return my_shortest_path.length();
+    VisiLibity::Polyline my_shortest_path;
+    VisiLibity::Point start(x1,y1);
+    VisiLibity::Point finish(x2,y2);
+    my_shortest_path = my_environment->shortest_path(start, finish, _epsilon);
+    return my_shortest_path.length();
 }
-	
+    
 void
 Polygon_Environment::compute_to_master_distances(int goal) {
     
