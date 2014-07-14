@@ -74,7 +74,11 @@ namespace polygonization {
         bool is_in_polygon( Segment s, Polygon* poly, Polygon::Vertex_iterator& it, int& source_to_target );
         bool get_connections_segments( Segment& shortest_s, Segment& master_s, Segment&poly_s, Polygon::Vertex_iterator& poly_i, Polygon::Vertex_iterator& master_i, int poly_id, int goal, Polygon* poly);
         
-		double shortest_path_distance_between(double x1,double y1,double x2, double y2);
+        double shortest_path_distance_between(double x1,double y1,double x2, double y2);
+        
+        void process_visibility_polygon(
+            KERNEL::Point_2 v, 
+            VisiLibity::Visibility_Polygon &v_poly);
         
         
         /*
@@ -94,6 +98,9 @@ namespace polygonization {
             Alpha_shape::vertex_handle& vr ); 
         bool find_last( Alpha_shape::vertex_handle v, 
             Alpha_shape::vertex_handle v_start );
+            
+        std::vector< std::vector<bool> >*  segment_visible_from_to;
+
     };
     bool pair_comparison (std::pair<int,double> a, std::pair<int,double> b);
     bool pair_comparison_inv (std::pair<int,double> a, std::pair<int,double> b);

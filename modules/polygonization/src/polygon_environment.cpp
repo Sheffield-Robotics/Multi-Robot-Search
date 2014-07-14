@@ -191,59 +191,36 @@ void Polygon_Environment::process_master_polygon()
     
     M_INFO3("Setting up visibility flags.\n");
     std::vector<bool> dum ( env_outer_poly->n() );
-    std::vector< vector<bool> > 
-        segment_visible_from_to(env_outer_poly->n(), dum);
-    for ( unsigned j=0; j < segment_visible_from_to.size(); j++)  
+    segment_visible_from_to = new std::vector< std::vector<bool> > (env_outer_poly->n(), dum);
+    for ( unsigned j=0; j < segment_visible_from_to->size(); j++)  
     {  
-        for ( unsigned jj=0; jj < segment_visible_from_to.size(); jj++ ) 
+        for ( unsigned jj=0; jj < segment_visible_from_to->size(); jj++ ) 
         {
-            segment_visible_from_to[j][jj] = false;
+            (*segment_visible_from_to)[j][jj] = false;
         }
     }
     
     M_INFO3("N vertices %d.\n",env_outer_poly->n());
+    
+    //// For every visiblity polygon
     for ( int ii = 0; ii < env_outer_poly->n() ; ii++ ) {
         M_INFO3("Computing visibility flags for vertex %d.\n",ii);
-        // find the min and max indices 
-        int a = -1, b = -1;
-        KERNEL::Point_2 q(
-            this->get_visi_vertex(ii).x(), this->get_visi_vertex(ii).y() );
-        KERNEL::Point_2 v1 = Point_2_from_poly_vertex(visi_polies[ii][0]);
+        // 1) find the min and max indices 
         
-        //// For testing only
-        //M_INFO3("Visi poly %d has area %f \n",ii,visi_polies[ii].area());
+        KERNEL::Point_2 
+            v( this->get_visi_vertex(ii).x(), this->get_visi_vertex(ii).y() );
+        
+        M_INFO3("Visi poly %d has area %f \n",ii,visi_polies[ii].area());
         //// area > 0 => vertices listed ccw, 
         //// area < 0 => cw 
         //// need ccw for the method below to work
-        int i = 0;
-        for ( i = 0; i < visi_polies[ii].n() ; i++) {            
-            KERNEL::Point_2 r(
-                visi_polies[ii][i].x(), visi_polies[ii][i].y() );
-            
-            M_INFO3(" --- At visi poly point %f %f \n",visi_polies[ii][i].x(),
-                visi_polies[ii][i].y());
-            KERNEL::Orientation orientation = CGAL::orientation(q,v1,r);
-            if ( orientation == CGAL::LEFT_TURN ) {
-                M_INFO3("Turning left \n");
-            } else if ( orientation == CGAL::RIGHT_TURN) {
-                M_INFO3("Turning right \n");
-                if ( a == -1 ) { // first right turn
-                    a = i-1;
-                }
-                if ( b == -1 ) { // first right turn
-                    b = i;
-                }
-            } else if ( orientation == CGAL::COLLINEAR) {
-                M_INFO3("COLLINEAR \n");
-                std::cout << "q (" << q.x() << "," << q.y() << ") ";
-                std::cout << "v1 (" << v1.x() << "," << v1.y() << ") ";
-                std::cout << "r (" << r.x() << "," << r.y() << ") ";
-                std::cout << std::endl;
-            }
-        }
+        process_visibility_polygon( v, visi_polies[ii] );
         
-        
-        // i = 1;
+
+    }
+}
+
+//         i = 1;
 //         M_INFO1(" Found a=%d, b=%d \n",a,b);
 //         KERNEL::Point_2 vi = Point_2_from_poly_vertex(visi_polies[ii][i]);
 //         KERNEL::Point_2 vb = Point_2_from_poly_vertex(visi_polies[ii][b]);
@@ -272,6 +249,65 @@ void Polygon_Environment::process_master_polygon()
 //                 M_INFO1(" Segment starting at %d visible from %d\n",i_segment,b_segment);
 //             }
 //         }
+
+void
+Polygon_Environment::process_visibility_polygon(
+    KERNEL::Point_2 v, 
+    VisiLibity::Visibility_Polygon &v_poly)
+{
+    KERNEL::Point_2 v1 = Point_2_from_poly_vertex(v_poly[0]);
+    int a = -1, b = -1;
+    for ( int i = 0; i < v_poly.n() ; i++) {            
+        KERNEL::Point_2 
+            v_i( v_poly[i].x(), v_poly[i].y() );
+        KERNEL::Orientation 
+            orientation = CGAL::orientation(v,v1,v_i);
+        if ( orientation == CGAL::LEFT_TURN ) {
+            M_INFO3("Turning left \n");
+        } else if ( orientation == CGAL::RIGHT_TURN) {
+            M_INFO3("Turning right \n");
+            if ( a == -1 ) { // first right turn
+                a = i-1;
+            }
+            if ( b == -1 ) { // first right turn
+                b = i;
+            }
+        } else if ( orientation == CGAL::COLLINEAR) {
+            M_INFO3("COLLINEAR \n");
+            std::cout << "q (" << v.x() << "," << v.y() << ") ";
+            std::cout << "v1 (" << v1.x() << "," << v1.y() << ") ";
+            std::cout << "v_i (" << v_i.x() << "," << v_i.y() << ") ";
+            std::cout << std::endl;
+        }        
+    }
+    
+    M_INFO1(" Found a=%d, b=%d \n",a,b);
+    int i = 0;
+    int i_segment = get_segment_index_for_point(v_poly[i]);
+    int b_segment = get_segment_index_for_point(v_poly[b]);
+    KERNEL::Point_2 vi = Point_2_from_poly_vertex(v_poly[i]);
+    KERNEL::Point_2 vb = Point_2_from_poly_vertex(v_poly[b]);
+    KERNEL::Point_2 va;
+    KERNEL::Orientation orientation = CGAL::orientation(v,v1,vi);
+    while ( orientation == CGAL::LEFT_TURN
+         || orientation == CGAL::COLLINEAR ) {
+        // segment of v_poly[i] is visible to v_poly[b]
+        segment_visible_from_to[i_segment][b_segment] = true;
+        M_INFO1(" Segment starting at %d visible from %d\n",i_segment,b_segment);
+        i++;
+        vi = Point_2_from_poly_vertex(v_poly[i]);
+        i_segment = get_segment_index_for_point(v_poly[i]);
+        va = Point_2_from_poly_vertex(v_poly[a]);
+        while ( CGAL::orientation(v,vi,vb) == CGAL::LEFT_TURN) {
+            a = (b+1) % v_poly.n();
+            b = (b+2) % v_poly.n();
+            va = Point_2_from_poly_vertex(v_poly[a]);
+            vb = Point_2_from_poly_vertex(v_poly[b]);
+            b_segment = get_segment_index_for_point(v_poly[b]);
+            // segment v_poly[i] visible to v_poly[b]
+            segment_visible_from_to[i_segment][b_segment] = true;
+            M_INFO1(" Segment starting at %d visible from %d\n",i_segment,b_segment);
+        }
     }
 }
 
@@ -284,6 +320,7 @@ Polygon_Environment::Point_2_from_poly_vertex( VisiLibity::Point& p )
 int 
 Polygon_Environment::get_segment_index_for_point( VisiLibity::Point p ) 
 {
+    // this is a vertex index - starting at 0, for segment [vertex_0,vertex_1]
     return p.index_of_projection_onto_boundary_of( *my_environment );
 }
 
