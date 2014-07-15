@@ -274,7 +274,7 @@ Polygon_Environment::process_visibility_polygon(
     }
     std::cout << std::endl;
     
-    // Test whether we have a reflexive vertex and return if not
+    M_INFO3("Test whether we have a reflexive vertex and return if not\n");
     int v_neigh1_i,v_neigh2_i;
     if ( v_index == 0 ) v_neigh1_i = v_poly.n()-1;
     else  v_neigh1_i = v_index-1;
@@ -290,9 +290,27 @@ Polygon_Environment::process_visibility_polygon(
     } else if (orientation_at_v == CGAL::COLLINEAR ) {
         M_INFO3("Collinear at v\n\n\n");
         return;
-    }
-    else {
+    } else {
         M_INFO3("Have a right turn --> > 180 angle at v\n");
+    }
+    
+    // Easier solution - simply compute the shortest path between any visible
+    // segment around v
+    for ( int i = 0; i < v_poly.n(); i++) {
+        int i_next = i+1;
+        if ( i == v_poly.n() - 1 )
+            i_next = 0;
+        int segment_index = get_segment_index_for_point(v_poly[i]);
+        int segment_index2 = get_segment_index_for_point(v_poly[i_next]);
+        
+        M_INFO3("seg index %d and %d \n",segment_index,segment_index2);
+        KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
+        KERNEL::Point_2 v_next( v_poly[i_next].x(), v_poly[i_next].y() );
+        KERNEL::Orientation orientation 
+            = CGAL::orientation(v,v_next,v_i);
+        if ( orientation == CGAL::COLLINEAR) {
+            M_INFO3("orientation == CGAL::COLLINEAR \n");
+        }    
     }
     
     // find the left and right indices 
