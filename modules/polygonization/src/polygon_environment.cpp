@@ -10,29 +10,19 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
 {
     _epsilon = epsilon;
     _visi_epsilon = 0.00000000001;
+    
     A = alphaShape;
     Alpha_shape::vertex_iterator AS_vert_it;
     AS_vert_it = A->alpha_shape_vertices_begin();
     std::list< Alpha_shape::vertex_handle > vertex_list;
-    for ( ; AS_vert_it != A->alpha_shape_vertices_end() ; ++AS_vert_it ) {        
+    for ( ; AS_vert_it != A->alpha_shape_vertices_end() ; ++AS_vert_it ) 
+    {
         vertex_list.push_back( *AS_vert_it );
         vertex_list.back()->info() = false;
     }
 
-    Alpha_shape::Alpha_shape_edges_iterator e_it = A->alpha_shape_edges_begin();
-    //while ( e_it != A->alpha_shape_edges_end() ) {
-    //    if ( A->classify( *e_it ) == Alpha_shape_base::REGULAR ) {
-    //        //std::cout << " i=" << e_it->second << " ";
-    //        for ( int i = 0; i <= 2; i++ ) {
-    //            if ( i != e_it->second ) {
-    //                std::cout << e_it->first->vertex(i)->point() << " ";
-    //            }
-    //        }
-    //        std::cout << std::endl;
-    //    }
-    //    e_it++;
-    //}
-
+    Alpha_shape::Alpha_shape_edges_iterator e_it 
+        = A->alpha_shape_edges_begin();
     Alpha_shape::vertex_handle vertex_h;
     this->n_polygons = 0; 
     while ( vertex_list.size() > 0 ) {
@@ -49,8 +39,6 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
     }
     if ( open_polygons > 0 )
         M_WARN("\nalpha_shape - have OPEN POLYGONS!!!\n");
-    
-    //simplify( epsilon );
     
     std::list< std::pair<int,double> > area_list;
     for ( unsigned int i = 0; i < this->size(); i++ ) { 
@@ -152,10 +140,10 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
     }
     M_INFO3("Finished constructing Master Polygon (%d vertices).\n", master_polygon->size());
     
-    M_INFO3("Building visibility graph.\n");
-    if ( visibility_graph != NULL ) 
-        delete visibility_graph;
-    visibility_graph = new Vis_graph(master_polygon->vertices_begin(), master_polygon->vertices_end());
+    //M_INFO3("Building visibility graph.\n");
+    //if ( visibility_graph != NULL ) 
+    //    delete visibility_graph;
+    //visibility_graph = new Vis_graph(master_polygon->vertices_begin(), master_polygon->vertices_end());
     
     this->process_master_polygon();
         
@@ -217,39 +205,8 @@ void Polygon_Environment::process_master_polygon()
         //// need ccw for the method below to work
         process_visibility_polygon( v, visi_polies[ii] );
         
-
     }
 }
-
-//         i = 1;
-//         M_INFO1(" Found a=%d, b=%d \n",a,b);
-//         KERNEL::Point_2 vi = Point_2_from_poly_vertex(visi_polies[ii][i]);
-//         KERNEL::Point_2 vb = Point_2_from_poly_vertex(visi_polies[ii][b]);
-//         KERNEL::Point_2 va;
-//         int i_segment = get_segment_index_for_point(visi_polies[ii][i]);
-//         int b_segment = get_segment_index_for_point(visi_polies[ii][b]);
-//
-//         KERNEL::Orientation_2 orientation = CGAL::orientation(q,v1,vi);
-//         while ( orientation == CGAL::LEFT_TURN
-//              || orientation == CGAL::COLLINEAR ) {
-//             // segment of visi_polies[ii][i] is visible to visi_polies[ii][b]
-//             segment_visible_from_to[i_segment][b_segment] = true;
-//             M_INFO1(" Segment starting at %d visible from %d\n",i_segment,b_segment);
-//             i++;
-//             vi = Point_2_from_poly_vertex(visi_polies[ii][i]);
-//             i_segment = get_segment_index_for_point(visi_polies[ii][i]);
-//             va = Point_2_from_poly_vertex(visi_polies[ii][a]);
-//             while ( CGAL::orientation(q,vi,vb) == CGAL::LEFT_TURN) {
-//                 a = (b+1) % visi_polies[ii].n();
-//                 b = (b+2) % visi_polies[ii].n();
-//                 va = Point_2_from_poly_vertex(visi_polies[ii][a]);
-//                 vb = Point_2_from_poly_vertex(visi_polies[ii][b]);
-//                 b_segment = get_segment_index_for_point(visi_polies[ii][b]);
-//                 // segment visi_polies[ii][i] visible to visi_polies[ii][b]
-//                 segment_visible_from_to[i_segment][b_segment] = true;
-//                 M_INFO1(" Segment starting at %d visible from %d\n",i_segment,b_segment);
-//             }
-//         }
 
 void
 Polygon_Environment::process_visibility_polygon(
@@ -300,76 +257,96 @@ Polygon_Environment::process_visibility_polygon(
         int i_next = i+1;
         if ( i == v_poly.n() - 1 )
             i_next = 0;
+        if ( v_index == i || v_index == i_next ) 
+            continue;
         int segment_index = get_segment_index_for_point(v_poly[i]);
         int segment_index2 = get_segment_index_for_point(v_poly[i_next]);
-        
         M_INFO3("seg index %d and %d \n",segment_index,segment_index2);
+        
+        
+        double xline = v_poly[i].x() - CGAL::to_double(v.x());
+        double yline = v_poly[i].y() - CGAL::to_double(v.y());
+        double xline_next = v_poly[i_next].x() - CGAL::to_double(v.x());
+        double yline_next = v_poly[i_next].y() - CGAL::to_double(v.y());
+        double a1 = norm_angle(atan2(yline,xline));
+        double a2 = norm_angle(atan2(yline_next,xline_next));
+        M_INFO3("angles %f and %f \n", a1,a2);
+        
+        if ( fabs(diff_angles(a1,a2)) < _visi_epsilon ) {
+            M_INFO2("Angles similar enough for collinearity \n");
+        } else {
+            // we have a visible segment 
+            // compute the shortest path to it and add an edge
+            // to the segment_visibility_graph
+            
+        }
+        
         KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
         KERNEL::Point_2 v_next( v_poly[i_next].x(), v_poly[i_next].y() );
-        KERNEL::Orientation orientation 
-            = CGAL::orientation(v,v_next,v_i);
-        if ( orientation == CGAL::COLLINEAR) {
-            M_INFO3("orientation == CGAL::COLLINEAR \n");
-        }    
+        
+        //KERNEL::Orientation orientation = CGAL::orientation(v,v_next,v_i);
+        //if ( orientation == CGAL::COLLINEAR) {
+        //    M_INFO2("orientation == CGAL::COLLINEAR \n");
+        //}
     }
     
     // find the left and right indices 
     // that are neighbors of each other
-    int left = -1, right = -1;
-    for ( int i = 0; i < v_poly.n() && left == -1 ; i++) 
-    {
-        KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
-        KERNEL::Orientation orientation 
-            = CGAL::orientation(v,v1,v_i);
-        if ( orientation == CGAL::LEFT_TURN ) {
-            M_INFO3("Turning left \n");
-        } else if ( orientation == CGAL::RIGHT_TURN) {
-            M_INFO3("Turning right \n");
-            if ( left == -1 ) 
-            {   // first right turn
-                left = i-1;
-                right = i;
-            }
-        } else if ( orientation == CGAL::COLLINEAR) {
-            M_INFO3("COLLINEAR \n");
-            std::cout << "q (" << v.x() << "," << v.y() << ") ";
-            std::cout << "v1 (" << v1.x() << "," << v1.y() << ") ";
-            std::cout << "v_i (" << v_i.x() << "," << v_i.y() << ") ";
-            std::cout << std::endl;
-        }        
-    }
-    M_INFO1(" Found left=%d, right=%d \n",left,right);
-    
-    
-    // Now start the rotational sweep around v
-    int i = 0;
-    int i_segment = get_segment_index_for_point(v_poly[i]);
-    int left_right_segment = get_segment_index_for_point(v_poly[left]);
-    KERNEL::Point_2 vi = Point_2_from_poly_vertex(v_poly[i]);
-    KERNEL::Point_2 v_right = Point_2_from_poly_vertex(v_poly[right]);
-    KERNEL::Point_2 v_left;
-    KERNEL::Orientation orientation = CGAL::orientation(v,v1,vi);
-    while ( orientation == CGAL::LEFT_TURN
-         || orientation == CGAL::COLLINEAR ) 
-    {
-        // segment of v_poly[i] is visible to v_poly[b]
-        (*segment_visible_from_to)[i_segment][left_right_segment] = true;
-        M_INFO1(" Segment starting at %d visible from %d\n",i_segment,left_right_segment);
-        i++;
-        vi = Point_2_from_poly_vertex(v_poly[i]);
-        i_segment = get_segment_index_for_point(v_poly[i]);
-        v_left = Point_2_from_poly_vertex(v_poly[left]);
-        while ( CGAL::orientation(v,vi,v_right) == CGAL::LEFT_TURN) {
-            left = (right+1) % v_poly.n();
-            right = (right+2) % v_poly.n();
-            v_left = Point_2_from_poly_vertex(v_poly[left]);
-            v_right = Point_2_from_poly_vertex(v_poly[right]);
-            left_right_segment = get_segment_index_for_point(v_poly[right]);
-            // segment v_poly[i] visible to v_poly[b]
-            (*segment_visible_from_to)[i_segment][left_right_segment] = true;
-            M_INFO1(" Segment starting at %d visible from %d\n",i_segment,left_right_segment);
-        }
-    }
+    //int left = -1, right = -1;
+    //for ( int i = 0; i < v_poly.n() && left == -1 ; i++) 
+    //{
+    //    KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
+    //    KERNEL::Orientation orientation 
+    //        = CGAL::orientation(v,v1,v_i);
+    //    if ( orientation == CGAL::LEFT_TURN ) {
+    //        M_INFO3("Turning left \n");
+    //    } else if ( orientation == CGAL::RIGHT_TURN) {
+    //        M_INFO3("Turning right \n");
+    //        if ( left == -1 ) 
+    //        {   // first right turn
+    //            left = i-1;
+    //            right = i;
+    //        }
+    //    } else if ( orientation == CGAL::COLLINEAR) {
+    //        M_INFO3("COLLINEAR \n");
+    //        std::cout << "q (" << v.x() << "," << v.y() << ") ";
+    //        std::cout << "v1 (" << v1.x() << "," << v1.y() << ") ";
+    //        std::cout << "v_i (" << v_i.x() << "," << v_i.y() << ") ";
+    //        std::cout << std::endl;
+    //    }        
+    //}
+    //M_INFO1(" Found left=%d, right=%d \n",left,right);
+    //
+    //
+    //// Now start the rotational sweep around v
+    //int i = 0;
+    //int i_segment = get_segment_index_for_point(v_poly[i]);
+    //int left_right_segment = get_segment_index_for_point(v_poly[left]);
+    //KERNEL::Point_2 vi = Point_2_from_poly_vertex(v_poly[i]);
+    //KERNEL::Point_2 v_right = Point_2_from_poly_vertex(v_poly[right]);
+    //KERNEL::Point_2 v_left;
+    //KERNEL::Orientation orientation = CGAL::orientation(v,v1,vi);
+    //while ( orientation == CGAL::LEFT_TURN
+    //     || orientation == CGAL::COLLINEAR ) 
+    //{
+    //    // segment of v_poly[i] is visible to v_poly[b]
+    //    (*segment_visible_from_to)[i_segment][left_right_segment] = true;
+    //    M_INFO1(" Segment starting at %d visible from %d\n",i_segment,left_right_segment);
+    //    i++;
+    //    vi = Point_2_from_poly_vertex(v_poly[i]);
+    //    i_segment = get_segment_index_for_point(v_poly[i]);
+    //    v_left = Point_2_from_poly_vertex(v_poly[left]);
+    //    while ( CGAL::orientation(v,vi,v_right) == CGAL::LEFT_TURN) {
+    //        left = (right+1) % v_poly.n();
+    //        right = (right+2) % v_poly.n();
+    //        v_left = Point_2_from_poly_vertex(v_poly[left]);
+    //        v_right = Point_2_from_poly_vertex(v_poly[right]);
+    //        left_right_segment = get_segment_index_for_point(v_poly[right]);
+    //        // segment v_poly[i] visible to v_poly[b]
+    //        (*segment_visible_from_to)[i_segment][left_right_segment] = true;
+    //        M_INFO1(" Segment starting at %d visible from %d\n",i_segment,left_right_segment);
+    //    }
+    //}
 }
 
 KERNEL::Point_2 

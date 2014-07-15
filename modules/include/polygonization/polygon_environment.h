@@ -2,6 +2,7 @@
 #define Polygon_Environment_H
 
 #include "utilities/misc.h"
+#include "utilities/angles.h"
 #include "polygonization/geometry_util.h"
 #include "polygonization/polygon.h"
 #include "polygonization/alpha_shape.h"
