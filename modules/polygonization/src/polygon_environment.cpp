@@ -145,6 +145,8 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
     //    delete visibility_graph;
     //visibility_graph = new Vis_graph(master_polygon->vertices_begin(), master_polygon->vertices_end());
     
+    seg_vis_graph = new Segment_Visibility_Graph();
+    
     this->process_master_polygon();
         
     return;
@@ -160,10 +162,12 @@ void Polygon_Environment::process_master_polygon()
 
     // converting master polygon to a visilibity polygon
     Polygon::Vertex_iterator it = master_polygon->vertices_begin();
-    for ( ; it != master_polygon->vertices_end(); it++ ) {
-        VisiLibity::Point poi( CGAL::to_double((*it).x()),CGAL::to_double((*it).y()) );
+    for ( ; it != master_polygon->vertices_end(); it++ ) 
+    {
+        VisiLibity::Point poi( 
+            CGAL::to_double((*it).x()),
+            CGAL::to_double((*it).y()) );
         a_poly.push_back( poi );
-        M_INFO3("Pushed back %f %f.\n", poi.x(),poi.y());
     }
     
     M_INFO3("Building Visibility Graph with VisiLibity.\n");
@@ -177,17 +181,18 @@ void Polygon_Environment::process_master_polygon()
         this->process_vertex( (*env_outer_poly)[i] );
     }
     
-    M_INFO3("Setting up visibility flags.\n");
-    std::vector<bool> dum( env_outer_poly->n() );
-    segment_visible_from_to 
-        = new std::vector< std::vector<bool> > (env_outer_poly->n(), dum);
-    for ( unsigned j=0; j < segment_visible_from_to->size(); j++)  
-    {  
-        for ( unsigned jj=0; jj < segment_visible_from_to->size(); jj++ ) 
-        {
-            (*segment_visible_from_to)[j][jj] = false;
-        }
-    }
+    ////(deprecated)
+    //M_INFO3("Setting up visibility flags.\n");
+    //std::vector<bool> dum( env_outer_poly->n() );
+    //segment_visible_from_to 
+    //    = new std::vector< std::vector<bool> > (env_outer_poly->n(), dum);
+    //for ( unsigned j=0; j < segment_visible_from_to->size(); j++)  
+    //{  
+    //    for ( unsigned jj=0; jj < segment_visible_from_to->size(); jj++ ) 
+    //    {
+    //        (*segment_visible_from_to)[j][jj] = false;
+    //    }
+    //}
     
     M_INFO3("N vertices %d.\n",env_outer_poly->n());
     
@@ -271,7 +276,9 @@ Polygon_Environment::process_visibility_polygon(
         double a1 = norm_angle(atan2(yline,xline));
         double a2 = norm_angle(atan2(yline_next,xline_next));
         M_INFO3("angles %f and %f \n", a1,a2);
-        
+
+        // TODO: is there is a CGAL way to do this? 
+        // Answer: not unless we use the original Kernel points
         if ( fabs(diff_angles(a1,a2)) < _visi_epsilon ) {
             M_INFO2("Angles similar enough for collinearity \n");
         } else {
@@ -279,10 +286,15 @@ Polygon_Environment::process_visibility_polygon(
             // compute the shortest path to it and add an edge
             // to the segment_visibility_graph
             
+            
+            KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
+            KERNEL::Point_2 v_next( v_poly[i_next].x(), v_poly[i_next].y() );
+            
+            // segment_index
+            
+            
         }
         
-        KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
-        KERNEL::Point_2 v_next( v_poly[i_next].x(), v_poly[i_next].y() );
         
         //KERNEL::Orientation orientation = CGAL::orientation(v,v_next,v_i);
         //if ( orientation == CGAL::COLLINEAR) {

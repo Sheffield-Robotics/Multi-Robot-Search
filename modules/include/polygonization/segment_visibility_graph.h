@@ -13,12 +13,30 @@
 #include <fstream>
 #include <math.h>    // for sqrt
 
-class segment_visibility_graph
+class Segment_Visibility_Graph
 {
+  public:
+      
+    struct seg_vertex
+    {
+        int segment_index;
+    };
+    struct seg_edge
+    {
+        int segment_index;
+        int segment_index2;
+        double distance;
+    };
+    
     typedef float cost_t;
-    typedef boost::adjacency_list<boost::listS, boost::vecS, boost::undirectedS, boost::no_property,
-      boost::property<boost::edge_weight_t, cost_t> > mygraph_t;
-    typedef boost::property_map<mygraph_t, boost::edge_weight_t>::type WeightMap;
+    typedef boost::adjacency_list
+        <boost::listS, boost::vecS, boost::undirectedS, 
+         seg_vertex, seg_edge 
+        > mygraph_t;
+    typedef boost::property_map
+        <mygraph_t, 
+         double seg_edge::* 
+        >::type WeightMap;
     typedef mygraph_t::vertex_descriptor vertex;
     typedef mygraph_t::edge_descriptor edge_descriptor;
     typedef mygraph_t::vertex_iterator vertex_iterator;
@@ -26,10 +44,11 @@ class segment_visibility_graph
 
     int 
     get_shortest_path(
-        segment_visibility_graph::vertex start, 
-        segment_visibility_graph::vertex end );
+        Segment_Visibility_Graph::vertex start, 
+        Segment_Visibility_Graph::vertex end );
     
-    segment_visibility_graph( int n_v, int n_e, float* edge_weights, edge* edge_array );
+    Segment_Visibility_Graph( int n_v, int n_e, float* edge_weights, edge* edge_array );
+    Segment_Visibility_Graph( );
 
     struct location
     {

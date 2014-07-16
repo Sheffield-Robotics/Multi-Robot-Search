@@ -9,6 +9,7 @@
 #include "polygonization/voronoi_diagram.h"
 #include "polygonization/dp_line_simplification.h"
 #include "polygonization/visilibity.hpp"
+#include "polygonization/segment_visibility_graph.h"
 #include <CGAL/Polygon_2_algorithms.h>
 #include <vector>
 #include <list>
@@ -27,6 +28,7 @@ namespace polygonization {
         Polygon* master_polygon;
         Vis_graph* visibility_graph;
         VisiLibity::Environment* my_environment;
+        Segment_Visibility_Graph* seg_vis_graph;
         double** distance_mat;
         double** distance_mat2;
         Segment*** segment_mat;

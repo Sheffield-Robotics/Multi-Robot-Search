@@ -1,4 +1,4 @@
-// 
+    // 
 //  Environment.h
 //  icra12_pe_code
 //  
@@ -15,8 +15,10 @@
 #include "DEFINES.h"
 #include "utilities/paramfile.h"
 
-namespace lineclear {
-    class Environment {
+namespace lineclear 
+{
+    class Environment 
+    {
       
       public:
         Environment();
