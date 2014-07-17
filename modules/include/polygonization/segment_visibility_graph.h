@@ -51,6 +51,13 @@ class Segment_Visibility_Graph
     
     Segment_Visibility_Graph( int n_v, int n_e, float* edge_weights, edge* edge_array );
     Segment_Visibility_Graph( );
+    vertex add_vertex(seg_vertex vertex_info);
+    edge_descriptor add_edge(vertex v1, vertex v2);
+    void add_edge(vertex v1, vertex v2, double d);
+    void add_edge(vertex v1, vertex v2, double x, double y, double d);
+    
+    
+    
 
     struct location
     {

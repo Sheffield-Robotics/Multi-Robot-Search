@@ -46,16 +46,46 @@ Segment_Visibility_Graph::get_shortest_path(
     return 0;
 }
 
-//void
-//    Segment_Visibility_Graph::add_edge()
-//{
-//    
-//}
+vertex
+Segment_Visibility_Graph::add_vertex(seg_vertex vertex_info)
+{
+    vertex v;
+    tie(v,inserted) = g->add_vertex(*g);
+    return v;
+}
+
+edge_descriptor
+Segment_Visibility_Graph::add_edge(vertex v1, vertex v2)
+{
+    edge_descriptor e;
+    bool inserted;
+    tie(e,inserted) = g->add_edge(v1,v2,*g);
+    // TODO
+    //weightmap[e] = weights[j];
+}
+
+void
+Segment_Visibility_Graph::add_edge(vertex v1, vertex v2, double d)
+{    
+    edge_descriptor e = this->add_edge(v1,v2);
+    // set d x,y in e properties
+}
+
+void
+Segment_Visibility_Graph::add_edge(vertex v1, vertex v2, double x, double y, double d)
+{
+    
+    edge_descriptor e = this->add_edge(v1,v2);
+    // set d x,y in e properties
+}
+
 
 Segment_Visibility_Graph::Segment_Visibility_Graph( )
 {
     g = new mygraph_t;
 }
+
+
 
 Segment_Visibility_Graph::Segment_Visibility_Graph( int n_v, int n_e, float* edge_weights, edge* edge_array )
 {

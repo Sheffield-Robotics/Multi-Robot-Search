@@ -38,6 +38,10 @@ namespace polygonization {
         double _visi_epsilon;
         
         std::vector<VisiLibity::Visibility_Polygon> visi_polies;
+        std::vector<Segment_Visibility_Graph::vertex>   
+            seg_vis_graph_type1_vertices;
+        std::vector<Segment_Visibility_Graph::vertex>
+            seg_vis_graph_type2_vertices;
         
         std::vector<Point> artificial_points;
         int is_artificial2( Point p );
@@ -84,6 +88,7 @@ namespace polygonization {
         double shortest_path_distance_between(double x1,double y1,double x2, double y2);
         
         void process_visibility_polygon(
+            int main_segment_index,
             KERNEL::Point_2 v, 
             VisiLibity::Visibility_Polygon &v_poly);
         
