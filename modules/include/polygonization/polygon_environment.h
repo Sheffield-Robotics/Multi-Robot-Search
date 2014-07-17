@@ -62,6 +62,10 @@ namespace polygonization {
         int 
         get_segment_index_for_point( VisiLibity::Point p );
         
+        double
+        shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,
+         KERNEL::Point_2& closest_point );
+        
         
         KERNEL::Point_2 
         Point_2_from_poly_vertex( VisiLibity::Point& p );        

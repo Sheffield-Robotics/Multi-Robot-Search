@@ -20,6 +20,8 @@ class Segment_Visibility_Graph
     struct seg_vertex
     {
         int segment_index;
+        int type;
+        seg_vertex(int i,int t) : segment_index(i), type(t) {};
     };
     struct seg_edge
     {

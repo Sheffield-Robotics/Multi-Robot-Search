@@ -161,14 +161,28 @@ void Polygon_Environment::process_master_polygon()
     VisiLibity::Polygon a_poly;
 
     // converting master polygon to a visilibity polygon
+    int i=0;
     Polygon::Vertex_iterator it = master_polygon->vertices_begin();
+    Segment_Visibility_Graph::vertex v_desc, v_desc_prev, v_desc_first;
     for ( ; it != master_polygon->vertices_end(); it++ ) 
     {
         VisiLibity::Point poi( 
             CGAL::to_double((*it).x()),
             CGAL::to_double((*it).y()) );
         a_poly.push_back( poi );
+        
+        seg_vertex a_vertex(i,1);
+        v_desc = seg_vis_graph->add_vertex( seg_vertex );
+        
+        if ( i > 0 ) 
+            seg_vis_graph->add_edge(v_desc, v_desc_prev, 0);
+        else 
+            v_desc_first = v_desc;
+        
+        v_desc_prev = v_desc;
+        i++
     }
+    seg_vis_graph->add_edge(v_desc, v_desc_first, 0);
     
     M_INFO3("Building Visibility Graph with VisiLibity.\n");
     double eps = 0.00000000001;
@@ -286,13 +300,16 @@ Polygon_Environment::process_visibility_polygon(
             // compute the shortest path to it and add an edge
             // to the segment_visibility_graph
             
-            
+            // segment_index
             KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
             KERNEL::Point_2 v_next( v_poly[i_next].x(), v_poly[i_next].y() );
+            KERNEL::Segment_2 s(v_i,v_next);
+            KERNEL::Point_2 closest_p;
+            double dis = this->shortest_distance_between( s, v, closest_p );
+            //M_INFO2("Closest distance %f  \n",dis);
+            //std::cout << "at point " << closest_p << std::endl;
             
-            // segment_index
-            
-            
+            seg_vis_graph->add_edge( );
         }
         
         
@@ -359,6 +376,38 @@ Polygon_Environment::process_visibility_polygon(
     //        M_INFO1(" Segment starting at %d visible from %d\n",i_segment,left_right_segment);
     //    }
     //}
+}
+
+double
+Polygon_Environment::shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,
+ KERNEL::Point_2& closest_point )
+{
+    
+    CGAL::squared_distance( s, p);
+    
+    KERNEL::Point_2 l1Points[] = { s.source(), s.target() };
+    KERNEL::Point_2 l2Points[] = { p };
+    
+    Polytope_distance pd(l1Points, l1Points+2, l2Points, l2Points+1);
+    assert (pd.is_valid());
+    
+    Polytope_distance::Coordinate_iterator coord_it;
+    KERNEL::RT x,y,w;
+    coord_it = pd.realizing_point_p_coordinates_begin();
+    x = *(coord_it++);
+    y = *(coord_it++);
+    w = (*coord_it);
+    Point p1(x,y,w);
+    
+    closest_point = p1;
+    
+    coord_it = pd.realizing_point_q_coordinates_begin();
+    x = *(coord_it++);
+    y = *(coord_it++);
+    w = (*coord_it);
+    Point p2(x,y,w);
+    
+    return CGAL::to_double(CGAL::squared_distance( s, p));
 }
 
 KERNEL::Point_2 
