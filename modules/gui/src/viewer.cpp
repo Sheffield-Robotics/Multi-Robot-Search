@@ -350,6 +350,7 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         redraw=true;
         break;
     case Qt::Key_I:
+        M_INFO3("Toggle option: drawVisiGraphVertex \n");
         if ( drawVisiGraphVertex == false) {
             drawVisiGraphVertex = true;
             tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
@@ -1894,8 +1895,7 @@ void Viewer::drawVisibilityGraph()
 void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it)
 {
     Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
-    
-    boost::graph_traits<Segment_Visibility_Graph::mygraph_t>::out_edge_iterator 
+    Segment_Visibility_Graph::mygraph_t::out_edge_iterator 
         ei, ei_end;
     tie(ei, ei_end) = boost::out_edges(*v_it,*g);
     
@@ -1910,8 +1910,12 @@ void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vert
              = boost::target(*ei,*g);
         if ( (*g)[ v_source ].type == 2 || (*g)[ v_target ].type == 2 )
         {
-            
-        } else { continue; }
+            glColor3f(0.0, 1.0, 0.0);
+            glLineWidth(2.0);
+        } else { 
+            glColor3f(1.0, 0.5, 1.0);
+            glLineWidth(2.0);
+        }
         this->draw_line_from_to(
             (*g)[ v_source ].p_x,
             (*g)[ v_source ].p_y,

@@ -235,83 +235,56 @@ void Polygon_Environment::process_master_polygon()
 }
 
 /**
- * main_segment_index corresponds ot vertex v
+ * v_index corresponds ot vertex v
  */
 
 void
 Polygon_Environment::process_visibility_polygon(
-    int main_segment_index,
+    int v_index,
     KERNEL::Point_2 v, 
     VisiLibity::Visibility_Polygon &v_poly)
 {
-    Segment_Visibility_Graph::vertex vert_desc_for_v
-        = this->seg_vis_graph_type2_vertices[main_segment_index];
-    Segment_Visibility_Graph::vertex vert_desc_for_v_segment
-        = this->seg_vis_graph_type1_vertices[main_segment_index];
-    
-    M_INFO1(" vert_desc_for_v %d at %f : %f  \n",
-        (*(seg_vis_graph->g))[ vert_desc_for_v ].segment_index,
-        (*(seg_vis_graph->g))[ vert_desc_for_v ].p_x,
-        (*(seg_vis_graph->g))[ vert_desc_for_v ].p_y);
-    M_INFO1(" vert_desc_for_v_segment %d at %f : %f  \n",
-        (*(seg_vis_graph->g))[ vert_desc_for_v_segment ].segment_index,
-        (*(seg_vis_graph->g))[ vert_desc_for_v_segment ].p_x,
-        (*(seg_vis_graph->g))[ vert_desc_for_v_segment ].p_y);
     
     KERNEL::Point_2 v1 = Point_2_from_poly_vertex(v_poly[0]);
     std::cout << "v1 (" << v1.x() << "," << v1.y() << ") ";
     std::cout << std::endl;
     
-    int visi_poly_i_of_v = -1;
+    int v_index_in_visi = -1;
     for ( int i = 0; i < v_poly.n() ; i++) 
     {
         KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
         if ( v_i == v ) {
-            std::cout << " v is v_" << i << std::endl;
-            visi_poly_i_of_v = i;
+            v_index_in_visi = i;
         }
         std::cout << "v_" << i << " (" << v_i.x() << "," << v_i.y() << ") ";
         std::cout << std::endl;
     }
+    std::cout << " v is v_" << v_index_in_visi << std::endl;
     std::cout << std::endl;
     
     M_INFO3("Check whether we have a reflexive vertex \n");
-    bool is_reflexive = false;
-    int v_neigh1_i,v_neigh2_i;
-    if ( visi_poly_i_of_v == 0 ) v_neigh1_i = v_poly.n()-1;
-    else  v_neigh1_i = visi_poly_i_of_v-1;
-    if ( visi_poly_i_of_v == v_poly.n() ) v_neigh2_i = 0;
-    else  v_neigh2_i = visi_poly_i_of_v+1;
-    KERNEL::Point_2 v_neigh1( v_poly[v_neigh1_i].x(), v_poly[v_neigh1_i].y() );
-    KERNEL::Point_2 v_neigh2( v_poly[v_neigh2_i].x(), v_poly[v_neigh2_i].y() );
-    KERNEL::Orientation orientation_at_v 
-        = CGAL::orientation(v_neigh1,v,v_neigh2);
-    if ( orientation_at_v == CGAL::LEFT_TURN ) {
-        is_reflexive = false;
-    } else if (orientation_at_v == CGAL::COLLINEAR ) {
-        M_INFO3("Collinear at v\n\n\n");
-        is_reflexive = false;
-    } else {
-        M_INFO3("Have a right turn --> > 180 angle at v\n");
-        is_reflexive = true;
-    }
-    
-    M_INFO3("Going through visibility polygon\n");
-    for ( int i = 0; i < v_poly.n(); i++) {
-        M_INFO1("     vertex %d of visi poly at %f %f \n",i);
+    bool v_is_reflexive = this->vertex_is_reflexive( v_index_in_visi, v_poly );
+        
+    M_INFO3("Going through visibility polygon for vertex v %d\n", v_index);
+    for ( int i = 0; i < v_poly.n(); i++) 
+    {
+        M_INFO1("    v_i: vertex %d of visi poly\n",i);
+        
         int i_next = i+1;
         if ( i == v_poly.n() - 1 )
             i_next = 0;
-        if ( visi_poly_i_of_v == i 
-          || visi_poly_i_of_v == i_next ) 
+        
+        if ( v_index_in_visi == i || v_index_in_visi == i_next ) 
         {
             M_INFO2(" vertex is startpoint or endpoint  ");
             continue;
         }
         
+        
+        
+        M_INFO1("Finding the segment index for visi poly segment\n");
         KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
         KERNEL::Point_2 v_next( v_poly[i_next].x(), v_poly[i_next].y() );
-        
         int endpoint_segment_index = this->is_endpoint(v_i);
         int endpoint_segment_index_next = this->is_endpoint(v_next);
         M_INFO3("%d %d \n",endpoint_segment_index,endpoint_segment_index_next);
@@ -322,88 +295,62 @@ Polygon_Environment::process_visibility_polygon(
         } else {
             segment_index = endpoint_segment_index;
         }
-    
         if ( segment_index < 0 )
             return;
+        M_INFO1("... found segment index %d \n",segment_index);
         
-        M_INFO3("seg index %d \n",segment_index);
+        M_INFO1("Finding closest point from v to segment");
+        KERNEL::Segment_2 s(v_i,v_next);
+        KERNEL::Point_2 closest_p;
+        double dis = this->shortest_distance_between( s, v, closest_p );
+        M_INFO2("Closest point at distance %f  \n",dis);
+        std::cout << "Closest point is " << closest_p << std::endl;
         
-        double xline = v_poly[i].x() - CGAL::to_double(v.x());
-        double yline = v_poly[i].y() - CGAL::to_double(v.y());
-        double xline_next = v_poly[i_next].x() - CGAL::to_double(v.x());
-        double yline_next = v_poly[i_next].y() - CGAL::to_double(v.y());
-        double a1 = norm_angle(atan2(yline,xline));
-        double a2 = norm_angle(atan2(yline_next,xline_next));
-        M_INFO3("angles %f and %f \n", a1,a2);
-
-        // TODO: is there is a CGAL way to do this? 
-        // Answer: not unless we use the original Kernel points
-        // fabs(diff_angles(a1,a2)) < _visi_epsilon
-        if ( false ) {
-            M_INFO2("Angles similar enough for collinearity \n");
-        } else {
-            // we have a visible segment 
-            // compute the shortest path to it and add an edge
-            // to the segment_visibility_graph
+        M_INFO1("Adding edges to seg visi graph...\n");
+        
+        seg_vis_graph->add_edge(v_index, 1, segment_index,1,
+            CGAL::to_double(closest_p.x()),CGAL::to_double(closest_p.y()), 
+            dis);
+        
+        if ( v_is_reflexive )
+        {
+            this->add_edge_to_visibility_graph(v_index, 1, segment_index, 2);
             
-            // Find the closest point from v to the visible segment
-            
-            KERNEL::Segment_2 s(v_i,v_next);
-            KERNEL::Point_2 closest_p;
-            double dis = this->shortest_distance_between( s, v, closest_p );
-            M_INFO2("Closest point at distance %f  \n",dis);
-            std::cout << "Closest point is " << closest_p << std::endl;
-            
-            M_INFO2("Adding edges to seg visi graph...\n");
-            // Find out if we can see the endpoints of segment
-            // segment_index
-            bool point_i_is_endpoint = false;
-            if ( segment_index < 0 )
-                continue;
-            VisiLibity::Point seg_endpoint = (*my_environment)(segment_index);
-            double d = VisiLibity::distance(seg_endpoint, v_poly[i] );
-            if ( d < this->_visi_epsilon
-              && is_reflexive )
-            {
-                point_i_is_endpoint = true;
-                // adding endpoint edges - between two type 2 
-                // vertices in the seg visi graph
-                Segment_Visibility_Graph::vertex v_visi_endpoint
-                    = this->seg_vis_graph_type2_vertices[segment_index];
-                seg_vis_graph->add_edge(vert_desc_for_v, v_visi_endpoint,d);
+            bool v_i_is_reflexive = this->vertex_is_reflexive(i, v_poly );
+            if ( v_i_is_reflexive ) {
+                this->add_edge_to_visibility_graph(v_index, 2, segment_index, 2);
             }
+        }
+        
+        
             
-            M_INFO3("Adding edge between seg %d type 1 and %d type 1 \n",segment_index,main_segment_index);
-            Segment_Visibility_Graph::vertex v_visi_segment
-                = this->seg_vis_graph_type1_vertices[segment_index];
-            
-            // Add type1 to type1 edges - direct visibility between segments v_visi_segment and vert_desc_for_v_segment
+        // Add  type2 to type 1 edge from vert_desc_for_v to segment_index
+        if ( is_reflexive )
+        {
             seg_vis_graph->add_edge(
-                v_visi_segment, 
-                vert_desc_for_v_segment,
+                v_index, 2, v_visi_segment,1,
                 CGAL::to_double(closest_p.x()),
                 CGAL::to_double(closest_p.y()), 
-                dis);
-                
-            M_INFO1(" v_visi_segment %d at %f : %f  \n",
-                (*(seg_vis_graph->g))[ v_visi_segment ].segment_index,
-                (*(seg_vis_graph->g))[ v_visi_segment ].p_x,
-                (*(seg_vis_graph->g))[ v_visi_segment ].p_y);
-                
-            // Add  type2 to type 1 edge from vert_desc_for_v to segment_index
-            if ( is_reflexive )
-            {
-                M_INFO3("Adding edge between seg %d type 1 and %d type 2 \n",segment_index,main_segment_index);
-                seg_vis_graph->add_edge(
-                    vert_desc_for_v,
-                    v_visi_segment,
-                    CGAL::to_double(closest_p.x()),
-                    CGAL::to_double(closest_p.y()), 
-                    dis); 
-            }
+                dis); 
         }
     }
     M_INFO2("Done with adding edges to seg visi graph for this vertex\n");
+}
+
+void
+Polygon_Environment::add_edge_to_visibility_graph
+    ( int i,  int type_i, int j, int type_j, double d, double x = 0, double y = 0)
+{
+    Segment_Visibility_Graph::vertex v, w;
+    if ( type_i == 1 )
+        v = this->seg_vis_graph_type1_vertices[i];
+    else
+        v = this->seg_vis_graph_type2_vertices[i];
+    if ( type_j == 1 )
+        w = this->seg_vis_graph_type1_vertices[j];
+    else
+        w = this->seg_vis_graph_type2_vertices[j];
+    seg_vis_graph->add_edge(v, w, x, y, d);
 }
 
 int
@@ -420,6 +367,42 @@ Polygon_Environment::is_endpoint( KERNEL::Point_2 p )
     }
     return -1;
 }
+
+bool
+Polygon_Environment::vertex_is_reflexive( 
+    int i, VisiLibity::Visibility_Polygon& v_poly ) 
+{
+    bool is_reflexive = false;
+    KERNEL::Point_2 v( v_poly[i].x(), v_poly[i].y() );
+    int v_neigh1_i,v_neigh2_i;
+    if ( i == 0 ) v_neigh1_i = v_poly.n()-1;
+    else  v_neigh1_i = i-1;
+    if ( i == v_poly.n() ) v_neigh2_i = 0;
+    else  v_neigh2_i = i+1;
+    KERNEL::Point_2 v_neigh1( v_poly[v_neigh1_i].x(), v_poly[v_neigh1_i].y() );
+    KERNEL::Point_2 v_neigh2( v_poly[v_neigh2_i].x(), v_poly[v_neigh2_i].y() );
+    KERNEL::Orientation orientation_at_v 
+        = CGAL::orientation(v_neigh1,v,v_neigh2);
+    if ( orientation_at_v == CGAL::LEFT_TURN ) {
+        is_reflexive = false;
+    } else if (orientation_at_v == CGAL::COLLINEAR ) {
+        is_reflexive = false;
+    } else {
+        is_reflexive = true;
+    }
+    return is_reflexive;
+}
+
+//double xline = v_poly[i].x() - CGAL::to_double(v.x());
+//double yline = v_poly[i].y() - CGAL::to_double(v.y());
+//double xline_next = v_poly[i_next].x() - CGAL::to_double(v.x());
+//double yline_next = v_poly[i_next].y() - CGAL::to_double(v.y());
+//double a1 = norm_angle(atan2(yline,xline));
+//double a2 = norm_angle(atan2(yline_next,xline_next));
+//M_INFO3("angles %f and %f \n", a1,a2);
+// TODO: is there is a CGAL way to do this? 
+// Answer: not unless we use the original Kernel points
+// fabs(diff_angles(a1,a2)) < _visi_epsilon
     
 
 double

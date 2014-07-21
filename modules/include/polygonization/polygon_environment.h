@@ -68,6 +68,10 @@ namespace polygonization {
         
         int
         is_endpoint( KERNEL::Point_2 p );
+        bool
+        vertex_is_reflexive( int i, 
+            VisiLibity::Visibility_Polygon& v_poly );
+        
         
         
         double
