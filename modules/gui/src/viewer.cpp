@@ -43,6 +43,7 @@ Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) 
     setRobotPose = false;
     drawWireFrame = false;
     drawVisiPoli = false;
+    drawVisiGraphVertex = false;
     drawStrategyStepFlag = false;
     drawFrequinPosesFlag = false;
     drawSweepStateFlag = false;
@@ -203,6 +204,12 @@ void Viewer::draw()
     if (drawVisiPoli)
         drawVisibilityPolygon();
     
+    if (drawVisiGraphVertex)
+        drawVisibilityGraphVertex(v_it);
+    
+    if (drawVisiGraph)
+        drawVisibilityGraph();
+    
     if (drawPolygonEnvironmentFlag)
         drawPolygonEnvironment();
 
@@ -343,8 +350,13 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         redraw=true;
         break;
     case Qt::Key_I:
-        M_INFO3("Computing adapted cost \n");
-        //this->computing_adapted_cost();
+        if ( drawVisiGraphVertex == false) {
+            drawVisiGraphVertex = true;
+            tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
+            redraw = true;
+        } else {
+            this->toggle_visi_graph_vertex();
+        }
         break;
     case Qt::Key_D:
         M_INFO3("Compute line-clear strategy on master polygon \n");
@@ -468,6 +480,9 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         break;
     case Qt::Key_8 :
         drawAllTrajectoriesLinesFlag = !drawAllTrajectoriesLinesFlag;
+        break;
+    case Qt::Key_9 :
+        this->toggle_visi_graph();
         break;
     case Qt::Key_M :
         //toggle_draw_up_to();
@@ -1195,6 +1210,20 @@ void Viewer::toggle_visi_poly() {
     redraw = true;
 }
 
+void Viewer::toggle_visi_graph() {
+    drawVisiGraph = !drawVisiGraph;
+    redraw = true;
+}
+
+void Viewer::toggle_visi_graph_vertex()
+{
+    v_it++;
+    if ( v_it == v_end ) {
+        tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
+    }
+    redraw = true;
+}
+
 void Viewer::drawFrequinPoses() {
     if ( _ct == NULL ) 
         return;
@@ -1375,7 +1404,29 @@ void Viewer::drawAllTrajectoriesLines() {
     }
 }
 
+void Viewer::draw_sphere_at(int x, int y, double h ) {
+    if ( !_map->pointInMap(x,y) )
+        return;
+    double wx,wy; _map->grid2world(wx,wy,x,y);
+    double height = _map->getCellsMM()[x][y].getHeight()/ 1000.0;
+    glColor3f(0.0, 0.0, 1.0);
+    glLineWidth(3.0);
+    drawSphere(0.3,wx,wy,height + h);
+}
 
+void Viewer::draw_line_from_to(int gx,int gy, int g2x, int g2y, double h)
+{
+    double wx, wy, w2x,w2y;
+    _map->grid2world(wx,wy,gx,gy);
+    _map->grid2world(w2x,w2y,g2x,g2y);
+    //double height = max(
+    //    _map->getCellsMM()[gx][gy].getHeight() / 1000.0,
+    //    _map->getCellsMM()[g2x][g2y].getHeight() / 1000.0);
+    glBegin(GL_LINES);
+     glVertex3f(wx,wy, h);
+     glVertex3f(w2x,w2y,  h);
+    glEnd();
+}
 
 void Viewer::draw_UAV_at(int x, int y) {
     if ( !_map->pointInMap(x,y) )
@@ -1805,6 +1856,69 @@ void Viewer::drawPoly( polygonization::Polygon *poly ) {
 void Viewer::drawVisibilityGraph()
 {
     //
+    //(*(_env->seg_vis_graph->g))::
+    boost::graph_traits<Segment_Visibility_Graph::mygraph_t>::vertex_iterator 
+        vi, vi_end;
+    tie(vi, vi_end) = boost::vertices(*(_pol->seg_vis_graph->g));
+    for (; vi != vi_end; ++vi)
+    {
+        boost::adjacent_vertices(*vi,*(_pol->seg_vis_graph->g));
+    }
+    boost::graph_traits<Segment_Visibility_Graph::mygraph_t>::edge_iterator 
+        ei, ei_end;
+    tie(ei, ei_end) = boost::edges(*(_pol->seg_vis_graph->g));
+    Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
+
+    glColor3f(0.0, 1.0, 0.0);
+    glLineWidth(1.0);
+    
+    for (; ei != ei_end; ++ei)
+    {
+        Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_source
+             = boost::source(*ei,*g);
+        Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_target
+             = boost::target(*ei,*g);
+        if ( (*g)[ v_source ].type == 2 || (*g)[ v_target ].type == 2 )
+        {
+            
+        } else { continue; }
+        this->draw_line_from_to(
+            (*g)[ v_source ].p_x,
+            (*g)[ v_source ].p_y,
+            (*g)[ v_target ].p_x,
+            (*g)[ v_target ].p_y,
+            13.0);
+    }
+}
+
+void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it)
+{
+    Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
+    
+    boost::graph_traits<Segment_Visibility_Graph::mygraph_t>::out_edge_iterator 
+        ei, ei_end;
+    tie(ei, ei_end) = boost::out_edges(*v_it,*g);
+    
+    glColor3f(0.0, 1.0, 0.0);
+    glLineWidth(1.0);
+    
+    for (; ei != ei_end; ++ei)
+    {
+        Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_source
+             = boost::source(*ei,*g);
+        Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_target
+             = boost::target(*ei,*g);
+        if ( (*g)[ v_source ].type == 2 || (*g)[ v_target ].type == 2 )
+        {
+            
+        } else { continue; }
+        this->draw_line_from_to(
+            (*g)[ v_source ].p_x,
+            (*g)[ v_source ].p_y,
+            (*g)[ v_target ].p_x,
+            (*g)[ v_target ].p_y,
+            13.0);
+    }
 }
 
 void Viewer::drawVisibilityPolygon()
@@ -1816,7 +1930,7 @@ void Viewer::drawVisibilityPolygon()
     double wx,wy;
     _map->grid2world(wx,wy,x,y);
     double height = _map->getCellsMM()[x][y].getHeight()/ 1000.0;
-    double h = _vis->getPursuerHeight();
+    double h = _vis->getPursuerHeight() + 1.0;
     glColor3f(0.0, 1.0, 1.0);
     glLineWidth(3.0);
     drawSphere(0.3,wx,wy,height + h);

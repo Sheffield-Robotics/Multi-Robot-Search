@@ -17,17 +17,30 @@ class Segment_Visibility_Graph
 {
   public:
       
-    struct seg_vertex
+    class seg_vertex
     {
+    public:
         int segment_index;
         int type;
+        double p_x;
+        double p_y;
         seg_vertex(int i,int t) : segment_index(i), type(t) {};
+        seg_vertex(int i,int t,double x, double y) 
+            : segment_index(i), type(t), p_x(x), p_y(y) {};
+        seg_vertex() {};
     };
-    struct seg_edge
+    class seg_edge
     {
+    public:
         int segment_index;
         int segment_index2;
         double distance;
+        double p_x;
+        double p_y;
+        seg_edge(int i, int j, double d) : segment_index(i), segment_index2(j), distance(d) {};
+        seg_edge(int i, int j, double d, double x, double y) 
+            : segment_index(i), segment_index2(j), distance(d), p_x(x), p_y(y) {};
+        seg_edge() {};
     };
     
     typedef float cost_t;
@@ -101,7 +114,7 @@ class Segment_Visibility_Graph
     };
     
     
-private:
+public:
     mygraph_t* g;
     WeightMap weightmap;// = get(edge_weight, g);
     

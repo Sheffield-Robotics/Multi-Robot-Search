@@ -46,22 +46,25 @@ Segment_Visibility_Graph::get_shortest_path(
     return 0;
 }
 
-vertex
+Segment_Visibility_Graph::vertex
 Segment_Visibility_Graph::add_vertex(seg_vertex vertex_info)
 {
     vertex v;
-    tie(v,inserted) = g->add_vertex(*g);
+    bool inserted;
+    v = boost::add_vertex(vertex_info,*g);
     return v;
 }
 
-edge_descriptor
+Segment_Visibility_Graph::edge_descriptor
 Segment_Visibility_Graph::add_edge(vertex v1, vertex v2)
 {
     edge_descriptor e;
+    seg_edge p;
     bool inserted;
-    tie(e,inserted) = g->add_edge(v1,v2,*g);
+    tie(e,inserted) = boost::add_edge(v1,v2,p,*g);
     // TODO
     //weightmap[e] = weights[j];
+    return e;
 }
 
 void
@@ -74,8 +77,14 @@ Segment_Visibility_Graph::add_edge(vertex v1, vertex v2, double d)
 void
 Segment_Visibility_Graph::add_edge(vertex v1, vertex v2, double x, double y, double d)
 {
+    seg_edge p;
+    p.p_x = x;
+    p.p_y = y;
+    p.distance = d;
+    edge_descriptor e;
+    bool inserted;
+    tie(e,inserted) = boost::add_edge(v1,v2,p,*g);
     
-    edge_descriptor e = this->add_edge(v1,v2);
     // set d x,y in e properties
 }
 

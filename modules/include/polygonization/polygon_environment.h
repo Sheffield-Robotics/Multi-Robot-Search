@@ -66,6 +66,10 @@ namespace polygonization {
         int 
         get_segment_index_for_point( VisiLibity::Point p );
         
+        int
+        is_endpoint( KERNEL::Point_2 p );
+        
+        
         double
         shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,
          KERNEL::Point_2& closest_point );

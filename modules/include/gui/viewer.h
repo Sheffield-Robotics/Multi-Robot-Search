@@ -53,6 +53,7 @@ class Viewer : public QGLViewer
       void setDrawGeoMapImage();
       void drawGraphStructure();
       void drawVisibilityGraph();
+      void drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it);
       void drawVisibilityPolygon();
       void drawPolygonEnvironment();
       void drawAllTrajectories();
@@ -69,11 +70,15 @@ class Viewer : public QGLViewer
       void toggle_sweep_state();
       void toggle_current_step();
       void toggle_visi_poly();
+      void toggle_visi_graph();
+      void toggle_visi_graph_vertex();
       void drawPolygonRawEnvironment();
       void drawPoly( polygonization::Polygon *poly );
       void drawVoronoiDiagram();
       void drawStrategyStep();
       void drawSegment(lineclear::Segment s);
+      void draw_sphere_at(int x, int y, double h );
+      void draw_line_from_to(int gx,int gy, int g2x, int g2y, double h);
       void drawLine(double p1x,double p1y, double p2x, double p2y, double ground = 0);
       void draw_UAV_at(int x, int y);
       void compute_lineclear_strategy();
@@ -109,6 +114,7 @@ class Viewer : public QGLViewer
       int current_step_i;
       int updated_cost;
       int visi_poly_index;
+      Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it, v_end;
       std::list<int> obstacle_sequence;
       std::list<int>::iterator obstacle_sequence_it;
       std::list<int> cleared_obstacles;
@@ -134,6 +140,8 @@ class Viewer : public QGLViewer
       bool drawPursuerExample;
       bool drawAgentSize;
       bool drawVisiPoli;
+      bool drawVisiGraph;
+      bool drawVisiGraphVertex;
       bool triggerDumpScreenShot;
 
    protected :
