@@ -22,12 +22,13 @@ class Segment_Visibility_Graph
     public:
         int segment_index;
         int type;
+        bool reflexive;
         double p_x;
         double p_y;
         seg_vertex(int i,int t) : segment_index(i), type(t) {};
         seg_vertex(int i,int t,double x, double y) 
-            : segment_index(i), type(t), p_x(x), p_y(y) {};
-        seg_vertex() {};
+            : segment_index(i), type(t), p_x(x), p_y(y) {reflexive = false;};
+        seg_vertex() { reflexive = false;};
     };
     class seg_edge
     {
@@ -87,8 +88,8 @@ class Segment_Visibility_Graph
         : m_location(l), m_goal(goal) {}
       CostType operator()(Vertex u)
       {
-        CostType dx = m_location[m_goal].x - m_location[u].x;
-        CostType dy = m_location[m_goal].y - m_location[u].y;
+        CostType dx = m_location[m_goal].p_x - m_location[u].p_x;
+        CostType dy = m_location[m_goal].p_y - m_location[u].p_y;
         return ::sqrt(dx * dx + dy * dy);
       }
     private:

@@ -72,6 +72,9 @@ namespace polygonization {
         vertex_is_reflexive( int i, 
             VisiLibity::Visibility_Polygon& v_poly );
         
+        void
+        add_edge_to_visibility_graph
+        ( int i,  int type_i, int j, int type_j, double d, double x = 0, double y = 0);
         
         
         double
