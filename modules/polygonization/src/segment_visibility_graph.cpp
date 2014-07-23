@@ -3,26 +3,30 @@
 using namespace boost;
 using namespace std;
 
-int 
+list<vertex> 
 Segment_Visibility_Graph::get_shortest_path(
     Segment_Visibility_Graph::vertex start, 
-    Segment_Visibility_Graph::vertex end )
+    Segment_Visibility_Graph::vertex goal )
 {
-    vector<mygraph_t::vertex_descriptor> p(num_vertices(*g));
-    vector<cost_t> d(num_vertices(*g));
-      
+    std::vector<vertex> p(num_vertices(*g));
+    std::vector<cost_t> d(num_vertices(*g));
+    weightmap = boost::get(&seg_edge::distance, *g);
+    list<vertex> shortest_path;
     try {
-      // call astar named parameter interface
+        astar_goal_visitor<vertex> astar_visitor(goal);
         boost::astar_search
             (*g, start,
-            distance_heuristic<mygraph_t, cost_t, mygraph_t>(*g, goal),
-            boost::predecessor_map(&p[0]).distance_map(&d[0]).
-            boost::visitor(astar_goal_visitor<vertex>(end)));
+            distance_heuristic(g, goal),          
+            boost::weight_map(weightmap).
+            predecessor_map(&p[0]).
+            visitor(astar_visitor)
+            );
+        
     } catch(found_goal fg) 
     { 
         // found a path to the goal
-        list<vertex> shortest_path;
-        for(vertex v = end;; v = p[v]) {
+        
+        for(vertex v = goal;; v = p[v]) {
             shortest_path.push_front(v);
             if(p[v] == v)
                 break;
@@ -30,12 +34,13 @@ Segment_Visibility_Graph::get_shortest_path(
         list<vertex>::iterator spi = shortest_path.begin();
         for(++spi; spi != shortest_path.end(); ++spi) 
         {
-            
+            cout << " vertex " << (*g)[*spi].segment_index << " "
+                << (*g)[*spi].p_x << ":"
+                << (*g)[*spi].p_y << endl;
         }
-        cout << endl << "Total travel time: " << d[end] << endl;
-        return 0;
+        cout << endl << "Total travel time: " << d[goal] << endl;
     }
-    return 0;
+    return shortest_path;
 }
 
 Segment_Visibility_Graph::vertex
@@ -92,7 +97,8 @@ Segment_Visibility_Graph::Segment_Visibility_Graph( int n_v, int n_e, float* edg
 {
     // build the graph   
     g = new mygraph_t(n_v);
-    //weightmap = boost::get(edge_weights, *g);
+    
+    
     //for(std::size_t j = 0; j < n_e; ++j) {
     //  edge_descriptor e; bool inserted;
     //  tie(e, inserted) = add_edge(edge_array[j].first,

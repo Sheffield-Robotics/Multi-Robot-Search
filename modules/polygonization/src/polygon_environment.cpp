@@ -341,6 +341,16 @@ Polygon_Environment::process_visibility_polygon(
         
     }
     M_INFO2("Done with adding edges to seg visi graph for this vertex\n");
+    this->get_shortest_path(2, 40);
+}
+
+void
+Polygon_Environment::get_shortest_path(int i, int j)
+{
+    Segment_Visibility_Graph::vertex v, w;
+    v = this->seg_vis_graph_type1_vertices[i];
+    w = this->seg_vis_graph_type1_vertices[j];
+    seg_vis_graph->get_shortest_path(v,w);
 }
 
 void

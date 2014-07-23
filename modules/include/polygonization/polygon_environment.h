@@ -76,6 +76,8 @@ namespace polygonization {
         add_edge_to_visibility_graph
         ( int i,  int type_i, int j, int type_j, double d, double x = 0, double y = 0);
         
+        void
+        get_shortest_path(int i, int j);
         
         double
         shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,

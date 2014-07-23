@@ -38,27 +38,27 @@ class Segment_Visibility_Graph
         double distance;
         double p_x;
         double p_y;
+        double edge_weight_t; 
         seg_edge(int i, int j, double d) : segment_index(i), segment_index2(j), distance(d) {};
         seg_edge(int i, int j, double d, double x, double y) 
             : segment_index(i), segment_index2(j), distance(d), p_x(x), p_y(y) {};
         seg_edge() {};
     };
     
-    typedef float cost_t;
+
+    typedef double cost_t;
     typedef boost::adjacency_list
         <boost::listS, boost::vecS, boost::undirectedS, 
          seg_vertex, seg_edge 
         > mygraph_t;
     typedef boost::property_map
-        <mygraph_t, 
-         double seg_edge::* 
-        >::type WeightMap;
+        <mygraph_t, double seg_edge::*>::type WeightMap;
     typedef mygraph_t::vertex_descriptor vertex;
     typedef mygraph_t::edge_descriptor edge_descriptor;
     typedef mygraph_t::vertex_iterator vertex_iterator;
     typedef std::pair<int, int> edge;
 
-    int 
+    std::list<vertex> 
     get_shortest_path(
         Segment_Visibility_Graph::vertex start, 
         Segment_Visibility_Graph::vertex end );
@@ -79,22 +79,21 @@ class Segment_Visibility_Graph
     };
     
     // euclidean distance heuristic
-    template <class Graph, class CostType, class LocMap>
-    class distance_heuristic : public boost::astar_heuristic<Graph, CostType>
+    class distance_heuristic : public boost::astar_heuristic<mygraph_t, double>
     {
     public:
-      typedef typename boost::graph_traits<Graph>::vertex_descriptor Vertex;
-      distance_heuristic(LocMap l, Vertex goal)
-        : m_location(l), m_goal(goal) {}
-      CostType operator()(Vertex u)
+      
+      distance_heuristic(mygraph_t* g, mygraph_t::vertex_descriptor goal)
+        : m_graph(g), m_goal(goal) {}
+      double operator()(mygraph_t::vertex_descriptor u)
       {
-        CostType dx = m_location[m_goal].p_x - m_location[u].p_x;
-        CostType dy = m_location[m_goal].p_y - m_location[u].p_y;
+        double dx = (*m_graph)[m_goal].p_x - (*m_graph)[u].p_x;
+        double dy = (*m_graph)[m_goal].p_y - (*m_graph)[u].p_y;
         return ::sqrt(dx * dx + dy * dy);
       }
     private:
-      LocMap m_location;
-      Vertex m_goal;
+      mygraph_t* m_graph;
+      mygraph_t::vertex_descriptor m_goal;
     };
     
     struct found_goal {}; // exception for termination
