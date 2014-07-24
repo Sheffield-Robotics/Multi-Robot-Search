@@ -391,13 +391,14 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         updateGL();
         break;
     case Qt::Key_N :
-        if (!classifiedMap) {
-            _map->classifyMap();
-            classifiedMap = true;
-        }
-        _anim->update();
-        setDrawVisibility(true);
-        updateGL();
+        this->toggle_visi_poly(true);
+        //if (!classifiedMap) {
+        //    _map->classifyMap();
+        //    classifiedMap = true;
+        //}
+        //_anim->update();
+        //setDrawVisibility(true);
+        //updateGL();
         break;
     case Qt::Key_E :
     {
@@ -1201,13 +1202,19 @@ void Viewer::toggle_draw_up_to() {
     redraw = true;
 }
 
-void Viewer::toggle_visi_poly() {
+void Viewer::toggle_visi_poly(bool backwards) {
     drawVisiPoli = true;
-    visi_poly_index++;
+    if ( backwards )
+        visi_poly_index--;
+    else
+        visi_poly_index++;
+    if ( visi_poly_index == -1 ) {
+        drawVisiPoli = false;
+    }
     if ( visi_poly_index == int( _pol->visi_polies.size() ) ) {
         visi_poly_index = -1;
         drawVisiPoli = false;
-    }
+    } 
     redraw = true;
 }
 
@@ -1222,6 +1229,15 @@ void Viewer::toggle_visi_graph_vertex()
     if ( v_it == v_end ) {
         tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
     }
+    
+    Segment_Visibility_Graph::vertex v,w;
+    v = *v_it;
+    int vertex_id = rand() % _pol->seg_vis_graph_type1_vertices.size();
+    Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
+    M_INFO3(" Going from vertex %d to vertex %d\n",(*g)[v].segment_index,vertex_id);
+    w = _pol->get_segment_visibility_vertex( vertex_id, 1 );
+    shortest_path = _pol->seg_vis_graph->get_shortest_path(v,w);
+    
     redraw = true;
 }
 
@@ -1889,19 +1905,44 @@ void Viewer::drawVisibilityGraph()
             (*g)[ v_target ].p_x,
             (*g)[ v_target ].p_y,
             13.0);
+        //drawText
+        
     }
 }
 
 void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it)
 {
     Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
-    Segment_Visibility_Graph::mygraph_t::out_edge_iterator 
-        ei, ei_end;
-    tie(ei, ei_end) = boost::out_edges(*v_it,*g);
+    
+    
+    std::list<Segment_Visibility_Graph::vertex>::iterator spi = shortest_path.begin();
+    double last_x = (*g)[ *v_it ].p_x;
+    double last_y = (*g)[ *v_it ].p_y;
+
+    for(++spi; spi != shortest_path.end(); ++spi) 
+    {
+        glLineWidth(3.0);
+        glColor3f(1.0, 1.0, 0.0);
+        this->draw_line_from_to(
+            last_x,
+            last_y,
+            (*g)[ *spi ].p_x,
+            (*g)[ *spi ].p_y,
+            13.0);
+        //renderText(100,150,"222");
+        //drawText(last_x,last_y,"test");
+        last_x = (*g)[ *spi ].p_x;
+        last_y = (*g)[ *spi ].p_y;
+    }
     
     glColor3f(0.0, 1.0, 0.0);
     glLineWidth(1.0);
     
+    Segment_Visibility_Graph::mygraph_t::out_edge_iterator 
+        ei, ei_end;
+    tie(ei, ei_end) = boost::out_edges(*v_it,*g);
+    M_INFO2("Edges of Vertex %d type %d\n", 
+        (*g)[*v_it].segment_index, (*g)[*v_it].type);
     for (; ei != ei_end; ++ei)
     {
         Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_source
@@ -1916,6 +1957,8 @@ void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vert
             glColor3f(1.0, 0.5, 1.0);
             glLineWidth(2.0);
         }
+        
+        M_INFO2("Edges to vertex %d of type %d at %f distance \n", (*g)[v_target].segment_index, (*g)[v_target].type, (*g)[*ei].distance);
         this->draw_line_from_to(
             (*g)[ v_source ].p_x,
             (*g)[ v_source ].p_y,

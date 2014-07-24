@@ -321,6 +321,7 @@ Polygon_Environment::process_visibility_polygon(
         KERNEL::Segment_2 s(v_i,v_next);
         KERNEL::Point_2 closest_p;
         double dis = this->shortest_distance_between( s, v, closest_p );
+        dis = sqrt(dis);
         M_INFO2("Closest point at distance %f  \n",dis);
         std::cout << "Closest point is " << closest_p << std::endl;
         
@@ -344,14 +345,26 @@ Polygon_Environment::process_visibility_polygon(
     this->get_shortest_path(2, 40);
 }
 
-void
+std::list<Segment_Visibility_Graph::vertex> 
 Polygon_Environment::get_shortest_path(int i, int j)
 {
     Segment_Visibility_Graph::vertex v, w;
     v = this->seg_vis_graph_type1_vertices[i];
     w = this->seg_vis_graph_type1_vertices[j];
-    seg_vis_graph->get_shortest_path(v,w);
+    return seg_vis_graph->get_shortest_path(v,w);
 }
+
+Segment_Visibility_Graph::vertex
+Polygon_Environment::get_segment_visibility_vertex(int i, int type_i)
+{
+    Segment_Visibility_Graph::vertex v, w;
+    if ( type_i == 1 )
+        v = this->seg_vis_graph_type1_vertices[i];
+    else
+        v = this->seg_vis_graph_type2_vertices[i];
+    return v;
+}
+
 
 void
 Polygon_Environment::add_edge_to_visibility_graph

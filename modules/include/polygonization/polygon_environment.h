@@ -76,12 +76,16 @@ namespace polygonization {
         add_edge_to_visibility_graph
         ( int i,  int type_i, int j, int type_j, double d, double x = 0, double y = 0);
         
-        void
+        std::list<Segment_Visibility_Graph::vertex> 
         get_shortest_path(int i, int j);
         
         double
         shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,
-         KERNEL::Point_2& closest_point );
+             KERNEL::Point_2& closest_point );
+         
+        Segment_Visibility_Graph::vertex
+        get_segment_visibility_vertex(int i, int type_i);
+         
         
         
         KERNEL::Point_2 

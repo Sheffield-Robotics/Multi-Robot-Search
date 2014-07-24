@@ -3,7 +3,7 @@
 using namespace boost;
 using namespace std;
 
-list<vertex> 
+std::list<Segment_Visibility_Graph::vertex> 
 Segment_Visibility_Graph::get_shortest_path(
     Segment_Visibility_Graph::vertex start, 
     Segment_Visibility_Graph::vertex goal )
@@ -34,9 +34,12 @@ Segment_Visibility_Graph::get_shortest_path(
         list<vertex>::iterator spi = shortest_path.begin();
         for(++spi; spi != shortest_path.end(); ++spi) 
         {
-            cout << " vertex " << (*g)[*spi].segment_index << " "
+            cout << " vertex " 
+                << (*g)[*spi].segment_index << " "
                 << (*g)[*spi].p_x << ":"
-                << (*g)[*spi].p_y << endl;
+                << (*g)[*spi].p_y << " "
+                << (*g)[*spi].type << " "
+                    << endl;
         }
         cout << endl << "Total travel time: " << d[goal] << endl;
     }

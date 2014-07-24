@@ -69,7 +69,7 @@ class Viewer : public QGLViewer
       void toggle_draw_up_to();
       void toggle_sweep_state();
       void toggle_current_step();
-      void toggle_visi_poly();
+      void toggle_visi_poly(bool backwards = false);
       void toggle_visi_graph();
       void toggle_visi_graph_vertex();
       void drawPolygonRawEnvironment();
@@ -123,6 +123,7 @@ class Viewer : public QGLViewer
       std::map<int,int> artifical_to_cost;
       vector< vector<NavPoint> > all_uav_poses;
       std::list<Visibility::Pos> uav_test_poses;
+      std::list<Segment_Visibility_Graph::vertex> shortest_path;
 
    public:
       bool showHeightMap;
