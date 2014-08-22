@@ -1,0 +1,2 @@
+<group ns="drone0"><param name="tf_prefix" value="drone0" /><include file="$(find drone_hri_launch)/launch/spawn_iros_quadrotor.launch" ><arg name="prefix"  value="drone0" /><arg name="start_position" value="-x 3.430000 -y 3.360000 -z 2.000000" /></include></group>
+<group ns="drone1"><param name="tf_prefix" value="drone1" /><include file="$(find drone_hri_launch)/launch/spawn_iros_quadrotor.launch" ><arg name="prefix"  value="drone1" /><arg name="start_position" value="-x 3.420000 -y 4.060000 -z 2.000000" /></include></group>
