@@ -38,6 +38,8 @@ namespace polygonization {
         Polygon_Environment* poly_env) {
         M_INFO2("Parsing Voronoi Diagram\n");
         Vertex_iterator i = this->vertices_begin();
+        int poly_size = poly_env->size();
+        M_INFO2("Parsing Voronoi Diagram - poly size  %d\n",poly_size);
         Segment*** segment_mat = new Segment**[poly_env->size()];
         for ( unsigned int j = 0; j < poly_env->size(); j++ ) {
             segment_mat[j] = new Segment*[poly_env->size()];

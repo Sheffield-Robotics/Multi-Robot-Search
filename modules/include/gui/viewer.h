@@ -202,7 +202,7 @@ class Viewer : public QGLViewer
 inline void Viewer::mouseMoveEvent( QMouseEvent* const e) 
 { 
    static int oldMouseX = e->x();
-
+   std::cout << "Mouse at " << e->x() << ":" << e->y() << std::endl;
    if ((e->modifiers() & Qt::ShiftModifier) && (e->modifiers() & Qt::ControlModifier)) { 
       bool found = false;
       qglviewer::Vec point = camera()->pointUnderPixel(QPoint(e->x(),e->y()), found);

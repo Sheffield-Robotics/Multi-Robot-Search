@@ -2,7 +2,7 @@
 #include "polygonization/voronoi_diagram.h"
 #include "utilities/paramfile.h"
 
-#define DEBUG_POLYGONENVIRONMENT 1
+#define DEBUG_POLYGONENVIRONMENT 4
 
 namespace polygonization {
     
@@ -20,6 +20,7 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
         vertex_list.push_back( *AS_vert_it );
         vertex_list.back()->info() = false;
     }
+    M_INFO2("Size of Alpha shape vertex list %d\n",vertex_list.size());
 
     Alpha_shape::Alpha_shape_edges_iterator e_it 
         = A->alpha_shape_edges_begin();
@@ -50,9 +51,12 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
     area_list.sort(pair_comparison);
     std::list< std::pair<int,double> >::iterator list_i;
     list_i = area_list.begin();
+    M_INFO2("area_list number of polygons %d",area_list.size());
     int larget_poly_i = list_i->first;
-    M_INFO2("Erasing largest polygon (faulty/redundant outside border).\n");
-    this->erase(this->begin()+larget_poly_i);
+    if ( area_list.size() > 1 ) {
+        M_INFO2("Erasing largest polygon (faulty/redundant outside border).\n");
+        this->erase(this->begin()+larget_poly_i);
+    }
     area_list.clear();
     
     M_INFO2("Grabbing the new largest polygon to define outer boundary.\n");
@@ -66,79 +70,83 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
     
     //Polygon* second_poly = &( this->at(second_largest_poly_i) );
     
-    // connect the remaining polygons to make a master polygon
-    master_polygon = new Polygon();
+    if ( this->size() == 1 ) {
+        master_polygon = &((*this)[0]);
+    } else {
+        // connect the remaining polygons to make a master polygon
+        master_polygon = new Polygon();
     
-    M_INFO1("Constructing Voronoi Diagram\n");
-    VD = new Voronoi_Diagram();
-    VD->construct(this);
-    M_INFO1("Constructed Voronoi Diagram with %d edges and %d vertices \n",
-        VD->number_of_halfedges(), VD->number_of_vertices());
-    distance_mat = new double*[this->size()];
+        M_INFO1("Constructing Voronoi Diagram\n");
+        VD = new Voronoi_Diagram();
+        VD->construct(this);
+        M_INFO1("Constructed Voronoi Diagram with %d edges and %d vertices \n",
+            VD->number_of_halfedges(), VD->number_of_vertices());
+        distance_mat = new double*[this->size()];
     
-    for ( unsigned int i = 0; i < this->size();i++ ) {
-        distance_mat[i] = new double[i+1];
-        for ( unsigned int j = 0; j < i+1;j++ ) {
-            distance_mat[i][j] = -1;
-        }
-    }
-    M_INFO1("Parsing Voronoi Diagram to create distance matrix\n");
-    segment_mat = VD->parse(distance_mat,this);
-    
-    //replicate distance matrix
-    distance_mat2 = new double*[this->size()];
-    for ( unsigned int i = 0; i < this->size();i++ ) {
-        distance_mat2[i] = new double[i+1];
-        for ( unsigned int j = 0; j < i+1;j++ ) {
-            distance_mat2[i][j] = distance_mat[i][j];
-            if ( DEBUG_POLYGONENVIRONMENT >=3 )
-                std::cout << distance_mat[i][j] << " ";
-        }
-        if ( DEBUG_POLYGONENVIRONMENT >=3 )
-            std::cout << std::endl;
-    }
-    
-    compute_to_master_distances(second_largest_poly_i);
-
-    if ( DEBUG_POLYGONENVIRONMENT >=3 ) {
-        M_INFO1("Show master distances to %d \n",second_largest_poly_i);
         for ( unsigned int i = 0; i < this->size();i++ ) {
-            std::cout << get_distance2(second_largest_poly_i,i) << " ";
-        }
-        std::cout << std::endl;
-    }
-    M_INFO1("Computing polygon distances to Master Polygon for %d polygons.\n", 
-        this->size());
-    std::list< std::pair<int,double> > distance_list;
-    for ( unsigned int i = 0; i < this->size(); i++ ) {
-        double d = 0;
-        if ( i != second_largest_poly_i ) {
-            d = get_distance2(second_largest_poly_i,i);
-            if ( DEBUG_POLYGONENVIRONMENT >=2 ) {
-                std::cout << i << " d= " << d << std::endl;
+            distance_mat[i] = new double[i+1];
+            for ( unsigned int j = 0; j < i+1;j++ ) {
+                distance_mat[i][j] = -1;
             }
         }
-        if ( d != -1 )
-            distance_list.push_back( std::pair<int,double>(i,d));
-    }
+        M_INFO1("Parsing Voronoi Diagram to create distance matrix\n");
+        segment_mat = VD->parse(distance_mat,this);
     
-    M_INFO2("Sorting polygons by distance to master.\n");
-    distance_list.sort(pair_comparison_inv);
+        //replicate distance matrix
+        distance_mat2 = new double*[this->size()];
+        for ( unsigned int i = 0; i < this->size();i++ ) {
+            distance_mat2[i] = new double[i+1];
+            for ( unsigned int j = 0; j < i+1;j++ ) {
+                distance_mat2[i][j] = distance_mat[i][j];
+                if ( DEBUG_POLYGONENVIRONMENT >=3 )
+                    std::cout << distance_mat[i][j] << " ";
+            }
+            if ( DEBUG_POLYGONENVIRONMENT >=3 )
+                std::cout << std::endl;
+        }
+    
+        compute_to_master_distances(second_largest_poly_i);
 
-    if ( !Params::g_construct_master )
-        return;
+        if ( DEBUG_POLYGONENVIRONMENT >=3 ) {
+            M_INFO1("Show master distances to %d \n",second_largest_poly_i);
+            for ( unsigned int i = 0; i < this->size();i++ ) {
+                std::cout << get_distance2(second_largest_poly_i,i) << " ";
+            }
+            std::cout << std::endl;
+        }
+        M_INFO1("Computing polygon distances to Master Polygon for %d polygons.\n", 
+            this->size());
+        std::list< std::pair<int,double> > distance_list;
+        for ( unsigned int i = 0; i < this->size(); i++ ) {
+            double d = 0;
+            if ( i != second_largest_poly_i ) {
+                d = get_distance2(second_largest_poly_i,i);
+                if ( DEBUG_POLYGONENVIRONMENT >=2 ) {
+                    std::cout << i << " d= " << d << std::endl;
+                }
+            }
+            if ( d != -1 )
+                distance_list.push_back( std::pair<int,double>(i,d));
+        }
     
-    M_INFO1("Adding polygons in order of distance to master (ascending).\n");
-    list_i = distance_list.begin();
-    while ( list_i != distance_list.end() ) {
-        M_INFO2("Adding polygon %d with distance %f \n",
-            list_i->first,list_i->second);
-        //if ( list_i->first == 118 )
-        //    break;
-        add_to_master( &this->at(list_i->first),list_i->first, second_largest_poly_i );
-        list_i++;
+        M_INFO2("Sorting polygons by distance to master.\n");
+        distance_list.sort(pair_comparison_inv);
+
+        if ( !Params::g_construct_master )
+            return;
+    
+        M_INFO1("Adding polygons in order of distance to master (ascending).\n");
+        list_i = distance_list.begin();
+        while ( list_i != distance_list.end() ) {
+            M_INFO2("Adding polygon %d with distance %f \n",
+                list_i->first,list_i->second);
+            //if ( list_i->first == 118 )
+            //    break;
+            add_to_master( &this->at(list_i->first),list_i->first, second_largest_poly_i );
+            list_i++;
+        }
+        M_INFO3("Finished constructing Master Polygon (%d vertices).\n", master_polygon->size());
     }
-    M_INFO3("Finished constructing Master Polygon (%d vertices).\n", master_polygon->size());
     
     //M_INFO3("Building visibility graph.\n");
     //if ( visibility_graph != NULL ) 
