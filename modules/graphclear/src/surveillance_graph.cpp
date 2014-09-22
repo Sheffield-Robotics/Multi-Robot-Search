@@ -2,6 +2,8 @@
 
 using namespace graphclear;
 
+
+
 void surveillance_graph_t::cut_strategy()
 {
     std::deque< surveillance_graph_t::vertex_descriptor > q;
@@ -23,32 +25,74 @@ void surveillance_graph_t::cut_strategy()
         if ( out_degree(v_y,*this) == 1 ) {
             
         } else {
-            if ( (*this)[v_y].outgoing_completed >= out_degree(v_y,*this)-1 ) 
+            
+            int out_completed = (*this)[v_y].outgoing_completed;
+            int degree = out_degree(v_y,*this);
+            if ( out_completed == degree-1 ) 
             {
-                // we have a sufficient number of outgoing 
-                // cut sequences so that we can build an incoming 
-                // cut sequence
-                
+                // we have a sufficient number of outgoing cut sequences 
+                // so that we can build ONE incoming cut sequence
+                // find the v_x for which to build it
                 surveillance_graph_t::out_edge_iterator ei, ei_end;
-                
                 boost::tie(ei, ei_end) = out_edges(v_y,*this);
                 for ( ; ei != ei_end; ++ei ) 
                 {
-                    cut_sequence_t cut_s = this->construct_full_cut_sequence();
-                    
                     v_x = this->get_other(ei,v_y);
+                    if ( get_cut_sequence(v_y,v_x).empty() == true ) {
+                        // this is the right v_x
+                        this->construct_full_cut_sequence(v_x,v_y);
+                    }
                 }
+            } 
+            else if ( out_completed == degree ) 
+            {
+                // we can build ALL incoming cut sequences
             }
-        }
-            
+        }       
     }
     
 }
 
-graphclear::cut_sequence_t 
-surveillance_graph_t::construct_full_cut_sequence()
+graphclear::cut_sequence_t&
+surveillance_graph_t::get_cut_sequence( 
+        vertex_descriptor from, vertex_descriptor to)
 {
-    graphclear::cut_sequence_t s;
+    edge_descriptor e = edge(from,to,*this).first;
+    if ( source(e,*this) == from )
+        return (*this)[ e ].cut_sequence_source_to_target;
+    else
+        return (*this)[ e ].cut_sequence_target_to_source;
+}
+
+
+
+/*
+    builds the full cut sequence around the vertex to,
+    attached to edge [from,to]
+*/
+void
+surveillance_graph_t::construct_full_cut_sequence(
+    vertex_descriptor from, vertex_descriptor to)
+{
+    graphclear::cut_sequence_t new_c;
+    
+    surveillance_graph_t::vertex_descriptor v_x;
+    surveillance_graph_t::out_edge_iterator ei, ei_end;
+    boost::tie(ei, ei_end) = out_edges(to,*this);
+    for ( ; ei != ei_end; ++ei ) 
+    {
+        v_x = this->get_other(ei,v_y);
+        if ( get_cut_sequence(v_y,v_x).empty() == true ) {
+
+        } else {
+            
+            graphclear::cut_sequence_t c = get_cut_sequence(v_y,v_x);
+            
+            
+        }
+    }
+    
+    
     return s;
 }
 
@@ -69,5 +113,13 @@ surveillance_graph_t::get_other( out_edge_iterator ei, vertex_descriptor v)
 int main (int argc, char const *argv[])
 {
     /* code */
+    std::cout << " Testing surv graph " << std::endl;
+    
+    typedef boost::small_world_iterator<boost::minstd_rand, 
+        surveillance_graph_t> SWGen;
+    boost::minstd_rand gen;
+    // Create graph with 100 nodes 
+    surveillance_graph_t g(SWGen(gen, 100, 6, 0.03), SWGen(), 100);    
+    
     return 0;
 }
