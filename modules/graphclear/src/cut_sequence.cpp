@@ -4,10 +4,17 @@ using namespace graphclear;
 
 cut_sequence_t::cut_sequence_t()
 {
-    a = 1;
+    length = 0;
 }
 
 cut_sequence_t::~cut_sequence_t()
 {
     
+}
+
+void cut_sequence_t::add( 
+    surveillance_graph_t::vertex_descriptor v, 
+    surveillance_graph_t& g)
+{
+    vertex_sequence.push_back(v);
 }

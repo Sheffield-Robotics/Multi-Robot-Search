@@ -13,32 +13,29 @@
 namespace graphclear
 {
 
+
 class surveillance_graph_vertex
 {
 public:
+    surveillance_graph_vertex() : outgoing_completed(0) {};
     int w;
-    
     int outgoing_completed;
 };
 
 class surveillance_graph_edge
 {
 public:
+    surveillance_graph_edge() : spanning_tree(false),w(0) {};
     cut_sequence_t cut_sequence_source_to_target;
     cut_sequence_t cut_sequence_target_to_source;
     int w;
-    int edge_weight;
+    bool spanning_tree;
 };
-
-typedef boost::adjacency_list
-    <boost::vecS, boost::vecS, boost::undirectedS, 
-     surveillance_graph_vertex, surveillance_graph_edge >
-    sg_base;
 
 class surveillance_graph_t : public sg_base
 {
 public:
-    surveillance_graph_t();
+    surveillance_graph_t(){};
     
     template<class EdgeIterator>
     surveillance_graph_t(EdgeIterator first, EdgeIterator last,
@@ -47,7 +44,7 @@ public:
             {
                 // do something with bar
             };
-    
+
     
     void cut_strategy();
     
