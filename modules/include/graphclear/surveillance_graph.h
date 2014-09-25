@@ -8,29 +8,11 @@
 #include <boost/graph/small_world_generator.hpp>
 #include <boost/random/linear_congruential.hpp>
 
+#include "graphclear/sg_typedefs.h"
 #include "graphclear/cut_sequence.h"
 
 namespace graphclear
 {
-
-
-class surveillance_graph_vertex
-{
-public:
-    surveillance_graph_vertex() : outgoing_completed(0) {};
-    int w;
-    int outgoing_completed;
-};
-
-class surveillance_graph_edge
-{
-public:
-    surveillance_graph_edge() : spanning_tree(false),w(0) {};
-    cut_sequence_t cut_sequence_source_to_target;
-    cut_sequence_t cut_sequence_target_to_source;
-    int w;
-    bool spanning_tree;
-};
 
 class surveillance_graph_t : public sg_base
 {
@@ -54,7 +36,7 @@ public:
     int count_outgoing_sequences();
     
 
-    graphclear::cut_sequence_t&
+    graphclear::cut_sequence_t*
     get_cut_sequence( 
         vertex_descriptor from, vertex_descriptor to);
     

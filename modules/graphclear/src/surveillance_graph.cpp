@@ -26,25 +26,38 @@ void surveillance_graph_t::cut_strategy()
         if ( out_degree(v_y,*this) == 1 ) {
             boost::tie(ei, ei_end) = out_edges(v_y,*this);
             v_x = this->get_other(ei,v_y);
-            get_cut_sequence(v_x,v_y).add(v_y);
-            get_cut_sequence(v_x,v_y).add(v_x);
+            std::cout << " Adding cut sequences " << std::endl;
+            get_cut_sequence(v_x,v_y)->add(v_y,*this);
+            get_cut_sequence(v_x,v_y)->add(v_x,*this);
+            (*this)[v_x].outgoing_completed++;
+            if ( (*this)[v_x].outgoing_completed >= out_degree(v_x,*this)-1 )
+            {
+                std::cout << " Adding v_x " << v_x << std::endl;
+                q.push_back(v_x);
+            }
+                
         } else {
-            
             int out_completed = (*this)[v_y].outgoing_completed;
             int degree = out_degree(v_y,*this);
+            std::cout << " Non leaf out_c" << out_completed 
+                << ":" << degree  << std::endl;
             if ( out_completed == degree-1 ) 
             {
-                // we have a sufficient number of outgoing cut sequences 
+                // we have a sufficient number of outgoing cut sequences       
                 // so that we can build ONE incoming cut sequence
                 // find the v_x for which to build it
-                
                 boost::tie(ei, ei_end) = out_edges(v_y,*this);
                 for ( ; ei != ei_end; ++ei ) 
                 {
                     v_x = this->get_other(ei,v_y);
-                    if ( get_cut_sequence(v_y,v_x).empty() == true ) {
+                    if ( get_cut_sequence(v_y,v_x)->empty() == true ) {
                         // this is the right v_x
                         this->construct_full_cut_sequence(v_x,v_y);
+                    }
+                    if ( (*this)[v_x].outgoing_completed 
+                          >= out_degree(v_x,*this)-1 ) 
+                    {
+                        q.push_back(v_x);          
                     }
                 }
             } 
@@ -65,7 +78,7 @@ void surveillance_graph_t::cut_strategy()
 //     return false;
 // }
 
-graphclear::cut_sequence_t&
+graphclear::cut_sequence_t*
     surveillance_graph_t::get_cut_sequence( 
         vertex_descriptor from, vertex_descriptor to)
 {
@@ -86,7 +99,8 @@ void
     surveillance_graph_t::construct_full_cut_sequence(
         vertex_descriptor from, vertex_descriptor to)
 {
-    graphclear::cut_sequence_t new_c;
+    graphclear::cut_sequence_t* new_c = get_cut_sequence(from,to);
+    new_c->clear();
     
     surveillance_graph_t::vertex_descriptor v_x;
     surveillance_graph_t::out_edge_iterator ei, ei_end;
@@ -94,16 +108,14 @@ void
     for ( ; ei != ei_end; ++ei ) 
     {
         v_x = this->get_other(ei,to);
-        if ( get_cut_sequence(to,v_x).empty() == true ) {
-
-        } else {
+        if ( v_x != from ) {
             
-            graphclear::cut_sequence_t c = get_cut_sequence(to,v_x);         
-            
+            graphclear::cut_sequence_t* c = get_cut_sequence(to,v_x);         
+            // add to 
             
         }
     }
-    
+    (*this)[from].outgoing_completed++;
     
 }
 
@@ -165,7 +177,11 @@ int main (int argc, char const *argv[])
     for ( ; e_i != e_end; ++e_i ) {
         if (g[*e_i].spanning_tree == true)
         {
-            add_edge(source(*e_i,g),target(*e_i,g),g[*e_i], g_2);
+            surveillance_graph_t::edge_descriptor  e = add_edge(source(*e_i,g),target(*e_i,g),g[*e_i], g_2).first;
+            g_2[e].cut_sequence_source_to_target = 
+                new cut_sequence_t();
+            g_2[e].cut_sequence_target_to_source = 
+                new cut_sequence_t();
         }
     }
     
