@@ -35,7 +35,6 @@ public:
     
     int count_outgoing_sequences();
     
-
     graphclear::cut_sequence_t*
     get_cut_sequence( 
         vertex_descriptor from, vertex_descriptor to);

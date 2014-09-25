@@ -1,7 +1,7 @@
 #ifndef SVG_EDGE
 #define SVG_EDGE
 
-// current labels include non_contiguous, hybrid heuristic and hybrid labels
+// current labels include non_contiguous, hybrid heuristic and hybrid labels   
 // contiguous and contiguous_mod
 
 struct svg_edge

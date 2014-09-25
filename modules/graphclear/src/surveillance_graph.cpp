@@ -27,12 +27,15 @@ void surveillance_graph_t::cut_strategy()
             boost::tie(ei, ei_end) = out_edges(v_y,*this);
             v_x = this->get_other(ei,v_y);
             std::cout << " Adding cut sequences " << std::endl;
-            get_cut_sequence(v_x,v_y)->add(v_y,*this);
-            get_cut_sequence(v_x,v_y)->add(v_x,*this);
+            
+            get_cut_sequence(v_x,v_y)->add(v_x, (*this)[*ei].w,
+                (*this)[v_x].w, *this);
+            get_cut_sequence(v_x,v_y)->add(v_y, 0,
+                (*this)[v_y].w, *this);
+            
             (*this)[v_x].outgoing_completed++;
             if ( (*this)[v_x].outgoing_completed >= out_degree(v_x,*this)-1 )
             {
-                std::cout << " Adding v_x " << v_x << std::endl;
                 q.push_back(v_x);
             }
                 
@@ -102,19 +105,48 @@ void
     graphclear::cut_sequence_t* new_c = get_cut_sequence(from,to);
     new_c->clear();
     
+    edge_descriptor e = edge(from,to,*this).first;
+    int b_from_to = (*this)[e].w;
+    new_c->add(from, (*this)[e].w,(*this)[from].w, *this);
+    new_c->add(to, 0,(*this)[to].w, *this);
+    
     surveillance_graph_t::vertex_descriptor v_x;
     surveillance_graph_t::out_edge_iterator ei, ei_end;
     boost::tie(ei, ei_end) = out_edges(to,*this);
+    int b = 0;
+    std::vector<int> b_s;
+    std::vector<edge_descriptor> e_s;
+    std::vector<graphclear::cut_sequence_t*> c_s;
     for ( ; ei != ei_end; ++ei ) 
     {
         v_x = this->get_other(ei,to);
         if ( v_x != from ) {
-            
+            b += (*this)[*ei].w;
+            b_s.push_back(b);
+            e_s.push_back(*ei);
             graphclear::cut_sequence_t* c = get_cut_sequence(to,v_x);         
-            // add to 
-            
+            c_s.push_back(c);
+            //graphclear::cut_sequence_t::iterator it;
+            //it = c->begin(); it++;
+            //while ( it != c->end() ) {
+            //    new_c->add_cut(*it);
+            //    it++;
+            //}
         }
     }
+    
+    b_from_to;
+    (*this)[from].w + b_from_to;
+    
+    b + b_from_to + (*this)[to].w
+    
+    
+    // got all cuts in new_c ordered_cuts;
+    // now turn it into a full cutsequence
+    new_c->make_full();
+    
+    
+    
     (*this)[from].outgoing_completed++;
     
 }
