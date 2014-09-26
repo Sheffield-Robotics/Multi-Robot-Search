@@ -1,0 +1,16 @@
+sg_map.o: sg_map.cpp ../include/sg_map.h /usr/local/include/opencv/cv.h \
+  /usr/local/include/opencv/cxcore.h /usr/local/include/opencv/cxtypes.h \
+  /usr/local/include/opencv/cxerror.h /usr/local/include/opencv/cvver.h \
+  /usr/local/include/opencv/cxcore.hpp \
+  /usr/local/include/opencv/cvtypes.h /usr/local/include/opencv/cv.hpp \
+  /usr/local/include/opencv/cvcompat.h /usr/local/include/opencv/cvaux.h \
+  /usr/local/include/opencv/cvaux.hpp \
+  /usr/local/include/opencv/cvvidsurv.hpp \
+  /usr/local/include/opencv/highgui.h /usr/local/include/opencv/cxcore.h \
+  ../include/define.h ../include/sg_graph.h ../include/sg_vertex.h \
+  ../include/CGAL_types.h ../include/define.h ../include/sg_edge.h \
+  ../include/CGAL_types.h ../include/define.h ../include/sg_map_point.h \
+  ../../br/include/br_pose.h ../include/wave_point.h \
+  ../include/CGAL_types.h
+sg_map_point.o: sg_map_point.cpp ../include/sg_map_point.h
+wave_point.o: wave_point.cpp ../include/wave_point.h

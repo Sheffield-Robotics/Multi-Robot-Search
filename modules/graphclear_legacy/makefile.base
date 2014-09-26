@@ -1,0 +1,27 @@
+# The purpose of this makefile is to compile
+# the maps2graph code into a library 
+# Alternatively one can compile the test binary
+LIBRARY_NAME = $(GLOBAL_LIB_DIR)libsgbase.a
+BINARY_NAME = $(COMP_TO_ROOT)bin/surveillance_graph_test
+
+# Files and Objects
+CPPFILES := $(shell echo *.cpp)
+OBJECTS = $(CPPFILES:.cpp=.o)
+
+######## TARGETS
+default: $(LIBRARY_NAME)
+  
+$(LIBRARY_NAME): depend $(OBJECTS)
+	ar -r $(LIBRARY_NAME) $(OBJECTS)
+
+$(BINARY_NAME): depend $(OBJECTS)
+	$(CC) $(OBJECTS) $(LFLAGS) -o $(BINARY_NAME)
+
+%.o: $(COMP_DIR)%.cpp
+	$(CC) $(CFLAGS) $< -o $@
+
+depend:
+	rm -f .depend
+	$(CC) -MM $(CFLAGS) $(CPPFILES) > .depend
+
+include $(shell pwd)/.depend
