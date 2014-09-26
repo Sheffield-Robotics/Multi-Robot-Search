@@ -49,7 +49,16 @@ void cut_sequence_t::add(
 */ 
 void cut_sequence_t::make_full() 
 {
-    //ordered_cuts.
+    std::cout << "Making full " << std::endl;
+    // Now....
+    // we have a whole set of cuts in our deque
+    iterator it = this->begin();
+    int b = 0;
+    while ( it != this->end() ) 
+    {
+        std::cout << *it << std::endl;
+        it++;
+    }
     
         
 }

@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <algorithm>
+#include <iostream>
 
 #include "graphclear/cut.h"
 #include "graphclear/sg_typedefs.h"
