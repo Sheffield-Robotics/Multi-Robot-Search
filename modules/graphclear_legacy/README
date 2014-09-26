@@ -1,0 +1,4 @@
+The graph_clear directory contains sources for solving the GRAPH CLEAR problem 
+and converting a grid map into a surveillance graph. 
+
+Binaries are compiled into the bin folder for testing and standalone usage.
