@@ -7,6 +7,9 @@
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/small_world_generator.hpp>
 #include <boost/random/linear_congruential.hpp>
+#include <boost/graph/graphviz.hpp>
+
+#include <fstream>
 
 #include "graphclear/sg_typedefs.h"
 #include "graphclear/cut_sequence.h"

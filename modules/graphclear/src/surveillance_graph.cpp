@@ -14,6 +14,7 @@ void surveillance_graph_t::cut_strategy()
             q.push_back(*vi);
     }
     std::cout << " Leaves pushed into queue " << q.size() << std::endl;
+    std::cout << std::endl;
     
     surveillance_graph_t::out_edge_iterator ei, ei_end;
     
@@ -55,20 +56,36 @@ void surveillance_graph_t::cut_strategy()
                     if ( get_cut_sequence(v_y,v_x)->empty() == true ) {
                         // this is the right v_x
                         this->construct_full_cut_sequence(v_x,v_y);
-                        return;
+                        if ( (*this)[v_x].outgoing_completed 
+                              >= out_degree(v_x,*this)-1 ) 
+                        {
+                            q.push_back(v_x);          
+                        }
                     }
-                    if ( (*this)[v_x].outgoing_completed 
-                          >= out_degree(v_x,*this)-1 ) 
-                    {
-                        q.push_back(v_x);          
-                    }
+                    
                 }
             } 
             else if ( out_completed == degree ) 
             {
-                // we can build ALL incoming cut sequences
+                std::cout << " we can build ALL incoming cut sequences" <<
+                    std::endl;
+                //(*this)[v_y].finished = true;
+                boost::tie(ei, ei_end) = out_edges(v_y,*this);
+                for ( ; ei != ei_end; ++ei ) 
+                {
+                    v_x = this->get_other(ei,v_y);
+                    if ( get_cut_sequence(v_x,v_y)->empty() == true ) {
+                        this->construct_full_cut_sequence(v_x,v_y);
+                        if ( (*this)[v_x].outgoing_completed 
+                              >= out_degree(v_x,*this)-1 ) 
+                        {
+                            q.push_back(v_x);          
+                        }
+                    }
+                }
             }
-        }       
+        }
+        std::cout << std::endl;       
     }
     
 }
@@ -125,14 +142,15 @@ void
         v_x = this->get_other(ei,to);
         if ( v_x != from ) {
             b += (*this)[*ei].w;
-            b_s.push_back(b);
+            b_s.push_back((*this)[*ei].w);
+            std::cout << " w=" << (*this)[*ei].w;
             e_s.push_back(*ei);
             graphclear::cut_sequence_t* cc = get_cut_sequence(to,v_x);         
             c_s.push_back(cc);
             c_s_its.push_back(cc->begin()); 
             graphclear::cut_sequence_t::iterator it = cc->begin();
             it++;
-            std::cout << " going through cuts " << std::endl;
+            std::cout << "   going through cuts " << std::endl;
             while ( it != cc->end() ) {
                 it->helper_index = c_s_its.size()-1;
                 std::cout << *it << std::endl;
@@ -154,8 +172,8 @@ void
     int b2 = b;
     
     //std::cout << " from to edge weight " << (*this)[e].w << std::endl;
-    new_c->add(from, (*this)[e].w,(*this)[from].w, *this);
-    new_c->add(to, 0,(*this)[to].w, *this);
+    new_c->add(from, b1,ag1, *this);
+    new_c->add(to, b2,ag2, *this);
     
     // now continuing along the next cut 
     // inside ordered_cuts the cuts should be ordered already
@@ -164,23 +182,36 @@ void
     std::cout << " Going through ordered cuts " << std::endl;
     std::set<cut_t>::iterator cut_set_it = new_c->ordered_cuts.begin();
     while ( cut_set_it !=  new_c->ordered_cuts.end() ) {
-        //std::cout << " helper " << cut_set_it->helper_index << std::endl;
-        if ( cut_set_it->helper_index < 0 
-            || cut_set_it->helper_index > b_s.size())
-            std::cout << "ERROR" << std::endl;
-        int b_change = b_s[cut_set_it->helper_index] - cut_set_it->b;
-        b -= b_change;
-        b_s[cut_set_it->helper_index] = cut_set_it->b;
+        
+        //if ( cut_set_it->helper_index < 0 
+        //     || cut_set_it->helper_index > b_s.size())
+        //    std::cout << "ERROR" << std::endl;
+        
+        std::cout << " helper " << cut_set_it->helper_index << std::endl;
         std::cout << *cut_set_it << std::endl;
+        
         cut_t new_cut = new_c->back();
+        
+        // compute the cost and block of the new cut based on the old one
+        
+        int b_change = b_s[cut_set_it->helper_index] - cut_set_it->b;
+        std::cout << " b_change " << b_change << std::endl;
+        new_cut.ag = b + cut_set_it->ag - b_s[cut_set_it->helper_index];
+        b -= b_change;
+        new_cut.b = b;
+        b_s[cut_set_it->helper_index] = cut_set_it->b;
+        
+        // add the cut vertices to the new cut
         cut_t::const_iterator cut_iterator = cut_set_it->begin();
         while ( cut_iterator != cut_set_it->end() ) {
             new_cut.push_back(*cut_iterator);
             cut_iterator++;
         }
-        new_cut.b = b;
-        new_cut.ag = b + cut_set_it->ag;
+        
+        // and then add the finished cut 
         new_c->add_cut_unordered( new_cut );
+        std::cout << " new cut " << new_cut << std::endl;
+
         cut_set_it++;
     }
     
@@ -219,7 +250,7 @@ int main (int argc, char const *argv[])
     boost::minstd_rand gen;
     // Create graph with 100 nodes 
     
-    surveillance_graph_t g(SWGen(gen, 100, 6, 0.03), SWGen(), 100);    
+    surveillance_graph_t g(SWGen(gen, 20, 4, 0.03), SWGen(), 20);    
     surveillance_graph_t g_2; 
     
     std::cout << num_vertices(g) << " vertices " << std::endl;
@@ -253,7 +284,8 @@ int main (int argc, char const *argv[])
     for ( ; e_i != e_end; ++e_i ) {
         if (g[*e_i].spanning_tree == true)
         {
-            surveillance_graph_t::edge_descriptor  e = add_edge(source(*e_i,g),target(*e_i,g),g[*e_i], g_2).first;
+            surveillance_graph_t::edge_descriptor 
+                e = add_edge(source(*e_i,g),target(*e_i,g),g[*e_i], g_2).first;
             g_2[e].cut_sequence_source_to_target = 
                 new cut_sequence_t();
             g_2[e].cut_sequence_target_to_source = 
@@ -264,6 +296,10 @@ int main (int argc, char const *argv[])
     std::cout << num_edges(g_2) << " edges " << std::endl;
     
     g_2.cut_strategy();
-        
+    std::ofstream file_stream("graphvizfile.dot", std::ios_base::out);
+    boost::write_graphviz(file_stream, g_2,   
+        make_label_writer(get(&surveillance_graph_vertex::w, g_2)),
+        make_label_writer(get(&surveillance_graph_edge::w, g_2)));
+    file_stream.close();
     return 0;
 }

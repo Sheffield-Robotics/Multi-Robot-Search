@@ -27,28 +27,27 @@ public:
     bool operator< ( const cut_t& y ) const
     {
         if (y.rho < rho)
-            return true;
-        else if (y.rho > rho)
             return false;
+        else if (y.rho > rho)
+            return true;
         else {
             if (y.ag < ag)
-                return true;
-            else if (y.ag > ag)
                 return false;
+            else if (y.ag > ag)
+                return true;
             else {
                 if (y.b < b)
-                    return true;
-                else if (y.b > b)
                     return false;
+                else if (y.b > b)
+                    return true;
                 else {
                     if ( !this->empty() && !y.empty())
                         return this->back() < y.back();
                     else 
-                        return true;
+                        return false;
                 }
             }
         }
-        
     }
 
     friend std::ostream& operator<< (std::ostream& os, const cut_t& cut)
@@ -66,7 +65,10 @@ public:
     
     void push_back (const sg_base::vertex_descriptor& val) 
     {
-        
+        if ( v_set.find(val) == v_set.end() ) {
+            std::list<sg_base::vertex_descriptor>::push_back(val);
+            v_set.insert(val);
+        }
     }
     
 private:

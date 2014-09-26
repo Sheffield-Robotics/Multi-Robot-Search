@@ -13,7 +13,7 @@ namespace graphclear
 {
     class surveillance_graph_t;
 
-class cut_sequence_t : public std::deque<cut_t>
+class cut_sequence_t : public std::list<cut_t>
 {
 public:
     int length;
