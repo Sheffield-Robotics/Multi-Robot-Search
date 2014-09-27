@@ -20,6 +20,7 @@ namespace polygonization {
             filename );
     }
 
+
     /*
      * This function creates a lot of dynamic memory via 'new'
      * bool** occ and E and A will have to be deleted properly

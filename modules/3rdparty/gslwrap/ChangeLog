@@ -1,0 +1,175 @@
+2003-05-14  nwetters  <nigel.wetters@lshtm.ac.uk>
+
+	* CVS: cleanup
+	
+	* bootstrap: added for CVS developers (see README.CVS)
+
+	* gslwrap/Makefile.am: fixed 'make dist'
+	
+	* configure.in: bumped version to 0.2 (release candidate)
+
+2002-09-20  t_vik  <t_vik@sologne>
+
+	in test/:
+	
+	* /cvsroot/gslwrap/gslwrap/test/test.cc, /cvsroot/gslwrap/gslwrap/test/Makefile.am:
+	reorganized testing
+
+	* /cvsroot/gslwrap/gslwrap/test/.cvsignore: *** empty log message ***
+
+	* /cvsroot/gslwrap/gslwrap/test/.cvsignore, /cvsroot/gslwrap/gslwrap/test/test_common.cpp:
+	reorganized testing
+
+	* /cvsroot/gslwrap/gslwrap/test/test_min.cc: moved from test2.cc
+
+	* /cvsroot/gslwrap/gslwrap/test/test2.cc: changed to test_min
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_int.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_float.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_double.cc:
+	(Ad hoc ?) file read and save
+
+2002-07-30  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/min_fminimizer.h: 1d fminimiser
+
+	* /cvsroot/gslwrap/gslwrap/test/Makefile.am, /cvsroot/gslwrap/gslwrap/test/test2.cc:
+	1D fminimiser
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_double.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_float.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_float.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_int.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_int.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.h, /cvsroot/gslwrap/gslwrap/gslwrap/random_number_distribution.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.h, /cvsroot/gslwrap/gslwrap/gslwrap/histogram.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_double.cc, /cvsroot/gslwrap/gslwrap/test/test.cc:
+	gcc3 warning + compile
+
+2002-07-09  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/test/test.cc: *** empty log message ***
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/histogram.h:
+	sum, return values of increment and accumulate
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.h: min, max, isnull
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.h:
+	added diagonal (returns a vector_view), min and max
+
+2002-06-24  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_vector_operators.h:
+	Added include
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/histogram.h:
+	added STL compatible methods, size and operator[]
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/Makefile.am, /cvsroot/gslwrap/gslwrap/gslwrap/histogram.h, /cvsroot/gslwrap/gslwrap/test/test.cc:
+	Added histogram class
+
+2002-05-13  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.h:
+	Added diag operator in matrix classes
+
+2002-03-21  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_vector_operators.h:
+	inlined operator*(matrix, vector)
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/random_generator.h: gcc
+
+2002-03-20  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/eigen_systems.h: constr problem HP
+
+2002-03-19  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.h:
+	default copy constructor for matrix (double)
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.cc:
+	aCC warning, using assert
+
+2002-03-18  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.cc:
+	using assert from stl
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.h: value_type
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/random_generator.h:
+	using namespace for non-HP
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/random_number_distribution.h: added
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.h: g++ changes
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.h:
+	some template changes and typedef value_type
+
+2001-12-11  ramin  <ramin@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/Doxyfile: Added Doxyfile.
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.cc:
+	Added binary load and save functions.
+
+2001-11-30  bosc  <bosc@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.h: spurious namespace
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/Makefile.am:
+	build sources in makefile... still experimental
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.h:
+	templated typedef for use in templated contexts
+
+2001-11-23  t_vik  <t_vik@sologne>
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.h:
+	cleaned vector_view interface
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/eigen_systems.h: first scratch
+
+	* /cvsroot/gslwrap/gslwrap/ChangeLog: *** empty log message ***
+
+	* /cvsroot/gslwrap/gslwrap/test/test.cc, /cvsroot/gslwrap/gslwrap/gslwrap/Makefile.am:
+	added matrix_vector_operators.hpp
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/random_generator.h:
+	copy constructor \n gslobj fcts \n assignement operator
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_double.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_float.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_int.h, /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/vector_source.h:
+	template copy-constructor \nnorm2 fct
+
+	* /cvsroot/gslwrap/gslwrap/gslwrap/matrix_double.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_double.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_float.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_float.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_int.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_int.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.cc, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_source.h, /cvsroot/gslwrap/gslwrap/gslwrap/matrix_vector_operators.h:
+	comment \nmatrix_vector product
+
+2001-11-23  Torbjoern Vik  <vik@ipb.u-strasbg.fr>
+
+	* gslwrap/matrix_vector_operators.h: added 
+
+2001-11-09  Torbjoern Vik  <vik@ipb.u-strasbg.fr>
+
+	* gslwrap/random_generator.h: added wrap for random number generation
+
+2001-11-07  Torbjoern Vik  <vik@ipb.u-strasbg.fr>
+
+	* gslwrap/vector_source.X : Changed vector_view from typedef to class 
+	* All: changed back so that vector_XXX doesn't need to know of the matrix classes
+
+2001-11-06  Torbjoern Vik  <vik@ipb.u-strasbg.fr>
+
+	* All: Added vector_view 
+
+2001-11-05  Torbjoern Vik  <vik@ipb.u-strasbg.fr>
+
+	* vectorXXX separated vector classes into header and source files
+
+Sun Nov 4 14:32:00 2001  Torbjorn Vik  <vik@ipb.u-strasbg.fr>
+
+	* All: Continued work on vector classes.
+
+Wed Aug 22 14:06:39 2001  Marcel Bosc  <bosc@ipb.u-strasbg.fr>
+
+	* All: Changed naming conventions and added namespace support
+
+Tue Aug 21 19:48:28 2001  Marcel Bosc  <bosc@ipb.u-strasbg.fr>
+
+	* Swithcing to autoconf: reorganized the directories, 
+	  added all the basic files
+

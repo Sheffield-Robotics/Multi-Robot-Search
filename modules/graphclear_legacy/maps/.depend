@@ -1,2 +1,0 @@
-sg_map_point.o: sg_map_point.cpp ../include/sg_map_point.h
-wave_point.o: wave_point.cpp ../include/wave_point.h
