@@ -9,6 +9,7 @@
 #include <boost/random/linear_congruential.hpp>
 #include <boost/graph/graphviz.hpp>
 
+#include <climits>
 #include <fstream>
 
 #include "graphclear/sg_typedefs.h"
@@ -43,6 +44,11 @@ public:
         vertex_descriptor from, vertex_descriptor to);
     
     vertex_descriptor get_other( out_edge_iterator ei, vertex_descriptor v);
+
+    cut_sequence_t* find_best_strategy();
+    cut_sequence_t* best_strategy_at_vertex( vertex_descriptor v);
+    void play_through_strategy(cut_t& strategy);
+    
 
 };
 

@@ -59,6 +59,7 @@ void cut_sequence_t::make_full()
     std::cout << "First cut " << std::endl << *it << std::endl;
     it++; // first cut stays
     bool done = false;
+    std::cout << "Next cutc " << std::endl;
     while ( done == false && it != this->end() ) 
     {
         std::cout << *it << std::endl;

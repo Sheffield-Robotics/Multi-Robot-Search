@@ -8,11 +8,12 @@ file(GLOB graphclear_SRC
 )
 
 add_library(graphclear ${graphclear_SRC})
-
 add_executable(graphclear_exe ${graphclear_SRC})
 
 find_package(Boost REQUIRED)
+
 include_directories(${Boost_INCLUDE_DIRS}) 
+include_directories(../include)
 
 target_link_libraries(graphclear_exe
     graphclear
