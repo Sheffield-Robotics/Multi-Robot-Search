@@ -7,7 +7,10 @@
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/small_world_generator.hpp>
 #include <boost/random/linear_congruential.hpp>
+#include <boost/graph/random.hpp>
+#include <boost/random/mersenne_twister.hpp>
 #include <boost/graph/graphviz.hpp>
+#include <boost/graph/connected_components.hpp>
 
 #include <climits>
 #include <fstream>
@@ -17,7 +20,8 @@
 
 namespace graphclear
 {
-
+    
+    
 class surveillance_graph_t : public sg_base
 {
 public:
