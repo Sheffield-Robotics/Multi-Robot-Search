@@ -33,6 +33,214 @@ void sg_graph::print_vertices() {
 	}
 }
 
+bool sg_graph::edge_alive( sg_edge_d e ) 
+{
+    if ( (*this)[source(e,*this)].alive && (*this)[target(e,*this)].alive) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void sg_graph::print_graph_to_file_txt(const char* filename) {
+	ofstream out_file;
+	sg_o_edge_it 	out_edge_it, out_edge_it_end;
+	sg_adj_it 	adj_it, adj_it_end;
+	sg_edge_it e_it, e_it_end;
+    sg_vertex_it	vert_it, vert_it_end, v_it, v_it_end;
+    sg_edge_it tree_edge_it,tree_edge_it_end;
+
+	// Prepare the file into which to write the graph
+	out_file.open(filename);//formerly out_file
+
+    int nvertices = 0;
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ++vert_it ) {
+        if ( !(*this)[*vert_it].alive )
+            continue;
+		nvertices++;
+	}
+    int nedges = 0;
+	tie( tree_edge_it, tree_edge_it_end ) = edges( *this );
+	for (; tree_edge_it != tree_edge_it_end; tree_edge_it++) {
+        if ( !edge_alive(*tree_edge_it) )
+            continue;
+		nedges++;
+	}
+
+    out_file << nvertices << ", " << nedges << std::endl;
+    out_file << std::endl;
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ) {
+        if ( !(*this)[*vert_it].alive ) {
+            vert_it++;
+            continue;
+        }
+		out_file << (*this)[*vert_it].w;
+        vert_it++;
+        if ( vert_it == vert_it_end ) {
+            out_file << std::endl;
+        } else {
+            out_file << ", ";
+        }
+	}
+    out_file << std::endl;
+    
+	//  Edges
+	tie( tree_edge_it, tree_edge_it_end ) = edges( *this );
+	for (; tree_edge_it != tree_edge_it_end;) {
+        if ( !edge_alive(*tree_edge_it) ) {
+            tree_edge_it++;
+            continue;
+        }
+		out_file << (*this)[*tree_edge_it].w;
+        tree_edge_it++;
+        if ( tree_edge_it == tree_edge_it_end ) {
+            out_file << std::endl;
+        } else {
+            out_file << ", ";
+        }
+	}
+    out_file << std::endl;
+
+    //distance matrix n+m x n+m
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ++vert_it ) {
+        if ( !(*this)[*vert_it].alive )
+            continue;
+    	tie(v_it, v_it_end) = vertices(*this);
+    	for (; v_it != v_it_end ; ++v_it ) {
+            if ( !(*this)[*v_it].alive )
+                continue;
+    		out_file << this->distance_between(*vert_it,*v_it);
+            out_file << ", ";
+    	}
+    	tie( e_it, e_it_end) = edges( *this );
+    	for (; e_it != e_it_end; ) {
+            if ( !edge_alive(*e_it) ) {
+                e_it++;
+                continue;
+            }
+    		out_file << this->distance_between(*vert_it,*e_it);
+            e_it++;
+            if ( e_it == e_it_end ) {
+                out_file << std::endl;
+            } else {
+                out_file << ", ";
+            }
+    	}
+	}
+	tie( tree_edge_it, tree_edge_it_end ) = edges( *this );
+	for (; tree_edge_it != tree_edge_it_end; tree_edge_it++) {
+        if ( !edge_alive(*tree_edge_it) )
+            continue;
+    	tie(v_it, v_it_end) = vertices(*this);
+    	for (; v_it != v_it_end ; ++v_it ) {
+            if ( !(*this)[*v_it].alive )
+                continue;
+    		out_file << this->distance_between(*v_it,*tree_edge_it);
+            out_file << ", ";
+    	}
+    	tie( e_it, e_it_end) = edges( *this );
+    	for (; e_it != e_it_end; ) {
+            if ( !edge_alive(*e_it) ){
+                e_it++;
+                continue;
+            }
+    		out_file << this->distance_between(*tree_edge_it,*e_it);
+            e_it++;
+            if ( e_it == e_it_end ) {
+                out_file << std::endl;
+            } else {
+                out_file << ", ";
+            }
+    	}
+    }
+    
+    // vertex to edge adjacency
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ++vert_it ) {
+        if ( !(*this)[*vert_it].alive )
+            continue;
+    	tie( e_it, e_it_end) = edges( *this );
+    	for (; e_it != e_it_end; ) {
+            if ( !edge_alive(*e_it) ) {
+                e_it++;
+                continue;
+            }
+    	    if ( source(*e_it,*this) == *vert_it 
+                || target(*e_it,*this) == *vert_it) {
+                out_file << "1";
+            } else {
+                out_file << "0";
+            }
+            e_it++;
+            if (e_it == e_it_end )
+                out_file << std::endl;
+            else
+                out_file << ", ";
+    	}
+    }
+    out_file << std::endl;
+    
+    // edge to vertex adjacency
+	tie( e_it, e_it_end) = edges( *this );
+	for (; e_it != e_it_end; e_it++) {
+        if ( !edge_alive(*e_it) )
+            continue;
+    	tie(vert_it, vert_it_end) = vertices(*this);
+    	for (; vert_it != vert_it_end ;) {
+            if ( !(*this)[*vert_it].alive ) {
+                vert_it++;
+                continue;
+            }
+            if ( source(*e_it,*this) == *vert_it 
+                || target(*e_it,*this) == *vert_it) {
+                out_file << "1";
+            } else {
+                out_file << "0";
+            }
+            vert_it++;
+            if (vert_it == vert_it_end )
+                out_file << std::endl;
+            else
+                out_file << ", ";
+        }
+	}
+    out_file << std::endl;
+    
+    // vertex to vertex adjacency
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ++vert_it ) 
+    {
+        if ( !(*this)[*vert_it].alive )
+            continue;
+    	tie(v_it, v_it_end) = vertices(*this);
+    	for (; v_it != v_it_end ; ) 
+        {
+            if ( !(*this)[*v_it].alive ) {
+                ++v_it;
+                continue;
+            }
+            if ( edge(*v_it, *vert_it, *this).second ) {
+                out_file << "1";
+            } else {
+                out_file << "0";
+            }
+            ++v_it;
+            if (v_it == v_it_end )
+                out_file << std::endl;
+            else
+                out_file << ", ";
+    	}
+    }
+    out_file << std::endl;
+    
+    
+    
+	out_file.close();     
+}
+
 void sg_graph::print_graph_to_file(const char* filename, int l_id, bool non_mst_edges) {
 	ofstream out_file;
 	sg_o_edge_it 	out_edge_it, out_edge_it_end;
@@ -206,4 +414,25 @@ float sg_graph::distance_to_edge( sg_vertex_d vd1, sg_vertex_d vd2, int x, int y
   float distance =  ( (*this)[shared_edge].x - x ) * ( (*this)[shared_edge].x - x ) + ( (*this)[shared_edge].y - y ) * ( (*this)[shared_edge].y - y );
   distance = sqrt( distance );
   return distance;
+}
+
+float sg_graph::distance_between( sg_vertex_d v, sg_vertex_d w ) {
+    float distance =  pow( (*this)[v].x - (*this)[w].x, 2 ) 
+           + pow( (*this)[v].y - (*this)[w].y , 2 ) ;
+    distance = sqrt( distance );
+    return distance;
+}
+
+float sg_graph::distance_between( sg_vertex_d v, sg_edge_d e ) {
+    float distance =  pow( (*this)[v].x - (*this)[e].x, 2 ) 
+           + pow( (*this)[v].y - (*this)[e].y, 2 ) ;
+    distance = sqrt( distance );
+    return distance;
+}
+
+float sg_graph::distance_between( sg_edge_d ee, sg_edge_d e ) {
+    float distance =  pow( (*this)[ee].x - (*this)[e].x, 2 ) 
+           + pow( (*this)[ee].y - (*this)[e].y , 2 ) ;
+    distance = sqrt( distance );
+    return distance;
 }

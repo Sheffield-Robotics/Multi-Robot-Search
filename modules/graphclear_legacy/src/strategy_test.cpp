@@ -129,5 +129,7 @@ int main(int argc, char **argv) {
 	the_map->display_graph(1,1, "output/s_graph_1final.bmp", "output/s_graph_2final.bmp");
 	the_map->display_graph(1,0, "output/s_graph_1cfinal.bmp", "output/s_graph_2cfinal.bmp");
 	the_map->cout_graph_summary();
+    
+    the_map->get_graph()->print_graph_to_file_txt("output/graph.txt");
 	return 0;
 }

@@ -9,10 +9,8 @@ EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTUR
 message( STATUS "Architecture: ${ARCHITECTURE}" )
 #set(CMAKE_OSX_ARCHITECTURES ${ARCHS_STANDARD_64_BIT})
 #message( STATUS "Architecture: ${ARCHITECTURE}" )
-
 message("CMAKE_EXE_LINKER_FLAGS" ${CMAKE_EXE_LINKER_FLAGS})
 
-message("Cmake module path" ${CMAKE_MODULE_PATH}) 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../cmake/")
 message("Cmake module path" ${CMAKE_MODULE_PATH}) 
 
@@ -27,14 +25,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../../bin)
 
 include_directories(include)
 
+add_subdirectory(agents)
 add_subdirectory(utilities)
 add_subdirectory(uavmodel)
 add_subdirectory(heightmap)
 add_subdirectory(planner)
 add_subdirectory(polygonization)
 add_subdirectory(hungarian)
-add_subdirectory(agents)
 add_subdirectory(lineclear)
 add_subdirectory(graphclear)
 
 add_subdirectory(gui)
+add_subdirectory(graphconstruction)
+
+

@@ -9,9 +9,11 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <cmath>
 #include "graphclear_legacy/sg_vertex.h"
 #include "graphclear_legacy/sg_edge.h"
 #include "graphclear_legacy/define.h"
+
 
 using namespace std;
 using namespace boost;
@@ -43,6 +45,8 @@ class sg_graph : public sg_graph_base {
 	int label_id;
 	void 
 	  print_vertices();
+    void 
+      print_graph_to_file_txt(const char* filename);
 	void 
 	  print_graph_to_file(const char* filename, int l_id, bool non_mst_edges );
 	void 
@@ -63,7 +67,10 @@ class sg_graph : public sg_graph_base {
 		get_sweep_dir_index( sg_vertex_d vd1, sg_vertex_d vd2);
 	int
 		number_of_nonmst_edges( int& cost );
-		
+	float distance_between( sg_vertex_d v, sg_vertex_d w );
+    float distance_between( sg_vertex_d v, sg_edge_d e );
+    float distance_between( sg_edge_d ee, sg_edge_d e );
+    bool edge_alive( sg_edge_d e );
 };
 
 #endif

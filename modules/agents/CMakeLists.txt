@@ -7,13 +7,7 @@ file(GLOB agents_SRC
     "src/*.c"
 )
 
-file(GLOB agents_HEADERS
-    "include/*.h"
-    "include/*.hpp"
-)
-
 add_library(agents 
-    ${agents_SRC} 
-    ${agents_HEADERS})
+    ${agents_SRC})
 
 message(STATUS "We're done with agents.")

@@ -615,6 +615,8 @@ void sg_map::critical_edge_points( SDG::Edge e, sg_edge_d ed ) {
 	G_g[ed].w = number_of_robots(dist);
 	G_g[ed].crit_p[0] = p1;
 	G_g[ed].crit_p[1] = p2;
+    G_g[ed].x = (p1.x()+p2.x())/2;
+    G_g[ed].y = (p1.y()+p2.y())/2;
 	//cout << " RESULT: G_g[ed].w " << G_g[ed].w << endl;
 	//cout << p1 << "  " << p2 << endl;
 }
@@ -3891,6 +3893,15 @@ void sg_map::write2img_graph(IplImage* img) {
 		}		
 	}
 }
+
+//void sg_map::write2file_graph() {
+//	tie( i, i_end ) = vertices( G_g );
+//	for ( ; i != i_end ; ++i ) {
+//		vd = *i;
+//		G_g[vd]
+//	}
+//}
+
 
 void sg_map::write2img_causes_for_minima(IplImage* img) {
 	pointvector::iterator k = voronoi_minima_points.begin();

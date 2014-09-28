@@ -26,6 +26,10 @@ Polygon_Environment*
 polygonize_heightmap( HeightMap* map, float a, float e, 
     int start_x, int start_y, std::string filename );
 
+Polygon_Environment* 
+polygonize_img( bool** occ, int max_x, int max_y, float a, float e, 
+        int start_x, int start_y, std::string filename );
+
 // should we switch this to a class that remembers 
 class Polygonization {
   public:
@@ -33,9 +37,16 @@ class Polygonization {
     
     std::list< std::pair<int,int> > _to_be_visited;
     
+    Polygon_Environment*
+    polygonize_occ_vector( bool** occ, int max_x,int max_y,
+        float a, float e, int start_x, int start_y, std::string pure_filename );
+    
     Polygon_Environment* 
     polygonize_heightmap( HeightMap* map, float a, float e, 
         int start_x, int start_y, std::string pure_filename );
+        
+    
+        
     bool** o;
     bool** v;
   private:
@@ -43,6 +54,15 @@ class Polygonization {
     int size_x;
     int size_y;
   
+    void 
+    save_occ_map(string pure_filename);
+  
+    void 
+    blow_up_obstacles();
+      
+    void 
+    fill_out_inaccessible_areas(int start_x, int start_y);
+    
     void 
     visit_neighbors(int,int);
     

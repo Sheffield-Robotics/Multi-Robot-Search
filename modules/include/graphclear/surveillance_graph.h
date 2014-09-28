@@ -11,6 +11,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/connected_components.hpp>
+#include <boost/graph/astar_search.hpp>
 
 #include <climits>
 #include <fstream>

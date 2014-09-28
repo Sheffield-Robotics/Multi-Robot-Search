@@ -20,6 +20,32 @@ namespace polygonization {
             filename );
     }
 
+    Polygon_Environment* 
+    polygonize_img( bool** occ, int max_x, int max_y, float a, float e, 
+            int start_x, int start_y, std::string filename ) {
+        Polygonization polygonization_inst;
+        return polygonization_inst.polygonize_occ_vector( occ, max_x,max_y, a, e, start_x,start_y, filename );
+    }
+
+    polygonization::Polygon_Environment*
+    Polygonization::polygonize_occ_vector( bool** occ, int max_x,int max_y,
+        float a, float e, int start_x, int start_y, std::string pure_filename )
+    {
+        o = occ;
+        size_x = max_x;
+        size_y = max_y;
+        
+        this->save_occ_map(pure_filename);
+        this->blow_up_obstacles();
+        this->fill_out_inaccessible_areas(start_x,start_y);
+            
+        Alpha_shape* A = new Alpha_shape;
+        A->construct( o, size_x, size_y, a );
+        Polygon_Environment* E = new Polygon_Environment;
+        E->construct( A, e );
+        return E;
+    }
+    
 
     /*
      * This function creates a lot of dynamic memory via 'new'
@@ -33,7 +59,6 @@ namespace polygonization {
     
         size_x = map->sizeX();
         size_y = map->sizeZ();
-    
         o = new bool*[size_x];
         // get a bool occupancy vector from map
         for (int x=0; x < size_x; x++) {
@@ -52,8 +77,13 @@ namespace polygonization {
                 }
             }
         }
+        return this->polygonize_occ_vector(o,size_x,size_y,a,e,start_x,start_y,
+            pure_filename);
+    }
     
-        // save the occupancy map
+    
+    void Polygonization::save_occ_map(string pure_filename) 
+    {
         string filename = pure_filename + ".ppm";
         ofstream os;
         os.open(filename.c_str());
@@ -68,7 +98,10 @@ namespace polygonization {
             }
         }
         os.close();
+    }
     
+    void Polygonization::blow_up_obstacles()
+    {
         // blow up each obstacle by a bit
         if ( Params::g_blow_up_obstacles == 1 ) {
             bool** oo = new bool*[size_x];
@@ -103,9 +136,10 @@ namespace polygonization {
             delete o;
             o = oo;
         }
+    }
     
-    
-        // fill out the inaccessible parts
+    void Polygonization::fill_out_inaccessible_areas(int start_x, int start_y)
+    {
         v = new bool*[size_x];
         for (int x=0; x < size_x; x++) {
             v[x] = new bool[size_y];
@@ -123,14 +157,6 @@ namespace polygonization {
                 }
             }
         }
-    
-    
-    
-        Alpha_shape* A = new Alpha_shape;
-        A->construct( o, map->sizeX(), map->sizeZ(), a );
-        Polygon_Environment* E = new Polygon_Environment;
-        E->construct( A, e );
-        return E;
     }
 
     void Polygonization::visit_neighbors( int start_x, int start_y) {

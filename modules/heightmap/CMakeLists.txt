@@ -24,8 +24,7 @@ add_library(heightmap
     ${heightmap_HEADERS}
     ${heightmap_HEADERS_MOC})
 
-
-#target_link_libraries(heightmap ${QGLVIEWER_INCLUDE_DIR})
+target_link_libraries(heightmap agents)
 
 message(STATUS "We're done with heightmap.")
 
