@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string>
 
+#include "graphclear/surveillance_graph.h"
+
 //**** Config
 #include <libconfig.h++>
 using namespace libconfig;
@@ -131,5 +133,51 @@ int main(int argc, char **argv) {
 	the_map->cout_graph_summary();
     
     the_map->get_graph()->print_graph_to_file_txt("output/graph.txt");
+    
+    
+    sg_graph* old_graph = the_map->get_graph();
+    std::vector<int> old_to_new(num_vertices(*old_graph));
+    graphclear::surveillance_graph_t surv_g;
+    sg_vertex_it v_it,v_it_end;
+    tie(v_it, v_it_end) = vertices(*old_graph);
+    for ( ; v_it != v_it_end; v_it++ ) {
+        if ( (*old_graph)[*v_it].alive ) {
+            graphclear::surveillance_graph_t::vertex_descriptor v;
+            v = add_vertex(surv_g);
+            surv_g[v].w = (*old_graph)[*v_it].w;
+            old_to_new[*v_it] = v;
+            std::cout << "v " << v << " w=" << surv_g[v].w << std::endl;
+        }
+    }
+    
+    sg_edge_it e_it,e_it_end;
+    tie(e_it, e_it_end) = edges(*old_graph);
+    for ( ; e_it != e_it_end; e_it++ ) {
+        if ( old_graph->edge_alive(*e_it) ) {
+            graphclear::surveillance_graph_t::edge_descriptor e;
+            e = add_edge( old_to_new[source(*e_it,*old_graph)], old_to_new[target(*e_it,*old_graph)], surv_g).first;
+            surv_g[e].w = (*old_graph)[*e_it].w;
+            std::cout << "edge " << e << " w=" << surv_g[e].w << std::endl;
+        }
+    }
+    
+	std::vector<int> component(num_vertices(surv_g));
+	int num_con_com = boost::connected_components(surv_g, &component[0]);
+	std::cout << "Number of connected components " << num_con_com << std::endl;
+    std::cout << "Number of vertices " << num_vertices(surv_g) << std::endl;
+    std::cout << "Number of edges " << num_edges(surv_g) << std::endl;
+    
+    
+    std::cout << "Finding best strategy " << std::endl;
+    graphclear::cut_sequence_t* best_c;
+    graphclear::surveillance_graph_t tree_of_g; 
+    graphclear::graph_to_tree(surv_g,tree_of_g);
+    graphclear::write_tree_to_file(tree_of_g);
+    tree_of_g.cut_strategy();
+    best_c = tree_of_g.find_best_strategy();
+    tree_of_g.play_through_strategy(best_c->back());
+    surv_g.play_through_strategy(best_c->back(),"output/graph_strat.txt");
+    
+       
 	return 0;
 }

@@ -7,8 +7,12 @@ file(GLOB graphclear_SRC
     "src/*.c"
 )
 
+file(GLOB graphclear_exe_SRC
+    "src/*.cxx"
+)
+
 add_library(graphclear ${graphclear_SRC})
-add_executable(graphclear_exe ${graphclear_SRC})
+add_executable(graphclear_exe ${graphclear_exe_SRC})
 
 find_package(Boost REQUIRED)
 

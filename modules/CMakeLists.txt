@@ -34,6 +34,7 @@ add_subdirectory(polygonization)
 add_subdirectory(hungarian)
 add_subdirectory(lineclear)
 add_subdirectory(graphclear)
+add_subdirectory(graphclear_legacy)
 
 add_subdirectory(gui)
 add_subdirectory(graphconstruction)
