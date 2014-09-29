@@ -6,7 +6,7 @@
 #include "polygonization/polygonization.h"
 #include "polygonization/voronoi_diagram.h"
 
-#include "graphconstruction/img_stream.h"
+
 
 
 namespace graphconstruction
