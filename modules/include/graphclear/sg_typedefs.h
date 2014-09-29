@@ -5,7 +5,7 @@
 
 namespace graphclear
 {
-    const unsigned int DEBUG_LVL = 2;
+    const unsigned int DEBUG_LVL = 1;
     class cut_sequence_t;
     
 class surveillance_graph_vertex
@@ -13,6 +13,7 @@ class surveillance_graph_vertex
 public:
     surveillance_graph_vertex() : outgoing_completed(0), cleared(0) {};
     int w;
+    double x,y;
     int outgoing_completed;
     bool cleared;
 };
@@ -25,6 +26,7 @@ public:
     cut_sequence_t* cut_sequence_source_to_target;
     cut_sequence_t* cut_sequence_target_to_source;
     int w;
+    double x,y;
     bool spanning_tree;
     bool blocked;
 };

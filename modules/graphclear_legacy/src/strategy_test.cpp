@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
     tree_of_g.cut_strategy();
     best_c = tree_of_g.find_best_strategy();
     tree_of_g.play_through_strategy(best_c->back());
-    surv_g.play_through_strategy(best_c->back(),"output/graph_strat.txt");
+    surv_g.play_through_strategy(best_c->back(),"output/graph.txt");
     
        
 	return 0;

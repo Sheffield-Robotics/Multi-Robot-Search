@@ -41,8 +41,8 @@ int main (int argc, char const *argv[])
     //   AStarHeuristic h, const bgl_named_params<P, T, R>& params);
     
     surveillance_graph_t ran_graph;
-    for ( int i = 0; i < 100; i++ ) {
-        graphclear::gen_rand_graph(ran_graph, 100,200, 5,20, 1,10);
+    for ( int i = 0; i < 2; i++ ) {
+        graphclear::gen_rand_graph(ran_graph, 10,20, 5,20, 1,10);
         std::cout<< "Graph has " ;
         std::cout<< " " << num_vertices(ran_graph) << " vertices" ;
         std::cout<< " " << num_edges(ran_graph) << " edges" << std::endl;
@@ -55,6 +55,28 @@ int main (int argc, char const *argv[])
         best_c = tree_of_g.find_best_strategy();
         tree_of_g.play_through_strategy(best_c->back());
         ran_graph.play_through_strategy(best_c->back());
+        
+        cleanup_tree(tree_of_g);
+    }
+    
+    char filename[200];
+    for ( int i = 0; i < 2; i++ ) {
+        graphclear::gen_rand_physical_graph(ran_graph, 50, 5,20, 1,10, 200,100);
+        std::cout<< "Graph has " ;
+        std::cout<< " " << num_vertices(ran_graph) << " vertices" ;
+        std::cout<< " " << num_edges(ran_graph) << " edges" << std::endl;
+            
+        graph_to_tree(ran_graph,tree_of_g);
+        
+        write_tree_to_file(tree_of_g);
+        
+        sprintf( filename, "output/ran_graph_%d_.txt",i);
+        ran_graph.print_graph_to_txt_file(filename);
+        
+        tree_of_g.cut_strategy();
+        best_c = tree_of_g.find_best_strategy();
+        tree_of_g.play_through_strategy(best_c->back());
+        ran_graph.play_through_strategy(best_c->back(),filename);
         
         cleanup_tree(tree_of_g);
     }

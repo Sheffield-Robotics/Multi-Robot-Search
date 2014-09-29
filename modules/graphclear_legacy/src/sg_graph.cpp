@@ -119,6 +119,8 @@ void sg_graph::print_graph_to_file_txt(const char* filename) {
     	for (; e_it != e_it_end; ) {
             if ( !edge_alive(*e_it) ) {
                 e_it++;
+                if (e_it == e_it_end )
+                    out_file << std::endl;
                 continue;
             }
     		out_file << this->distance_between(*vert_it,*e_it);
@@ -130,6 +132,7 @@ void sg_graph::print_graph_to_file_txt(const char* filename) {
             }
     	}
 	}
+    //out_file << std::endl;
 	tie( tree_edge_it, tree_edge_it_end ) = edges( *this );
 	for (; tree_edge_it != tree_edge_it_end; tree_edge_it++) {
         if ( !edge_alive(*tree_edge_it) )
@@ -145,6 +148,8 @@ void sg_graph::print_graph_to_file_txt(const char* filename) {
     	for (; e_it != e_it_end; ) {
             if ( !edge_alive(*e_it) ){
                 e_it++;
+                if (e_it == e_it_end )
+                    out_file << std::endl;
                 continue;
             }
     		out_file << this->distance_between(*tree_edge_it,*e_it);
@@ -156,6 +161,8 @@ void sg_graph::print_graph_to_file_txt(const char* filename) {
             }
     	}
     }
+    out_file << std::endl;
+    
     
     // vertex to edge adjacency
 	tie(vert_it, vert_it_end) = vertices(*this);
@@ -166,6 +173,8 @@ void sg_graph::print_graph_to_file_txt(const char* filename) {
     	for (; e_it != e_it_end; ) {
             if ( !edge_alive(*e_it) ) {
                 e_it++;
+                if (e_it == e_it_end )
+                    out_file << std::endl;
                 continue;
             }
     	    if ( source(*e_it,*this) == *vert_it 
@@ -192,6 +201,8 @@ void sg_graph::print_graph_to_file_txt(const char* filename) {
     	for (; vert_it != vert_it_end ;) {
             if ( !(*this)[*vert_it].alive ) {
                 vert_it++;
+                if (vert_it == vert_it_end )
+                    out_file << std::endl;
                 continue;
             }
             if ( source(*e_it,*this) == *vert_it 
@@ -220,6 +231,8 @@ void sg_graph::print_graph_to_file_txt(const char* filename) {
         {
             if ( !(*this)[*v_it].alive ) {
                 ++v_it;
+                if (v_it == v_it_end )
+                    out_file << std::endl;
                 continue;
             }
             if ( edge(*v_it, *vert_it, *this).second ) {

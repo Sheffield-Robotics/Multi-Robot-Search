@@ -387,7 +387,7 @@ void surveillance_graph_t::play_through_strategy(
     
     std::ofstream out_file;
     if ( filename != "" ) {
-        out_file.open(filename.c_str());
+        out_file.open(filename.c_str(),std::ios::app);
     }
     
     //cut is interpreted as a list of vertices
@@ -472,6 +472,181 @@ surveillance_graph_t::vertex_descriptor
         return boost::source(*ei,*this);
 }
 
+void
+surveillance_graph_t::print_graph_to_txt_file(const char* filename)
+{
+	std::ofstream out_file;
+    edge_iterator e_it, e_it_end, t_e_it, t_e_it_end;
+    vertex_iterator	vert_it, vert_it_end, v_it, v_it_end;
+
+	// Prepare the file into which to write the graph
+	out_file.open(filename);//formerly out_file
+
+    int nvertices = 0;
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ++vert_it ) {
+		nvertices++;
+	}
+    int nedges = 0;
+	tie( t_e_it, t_e_it_end ) = edges( *this );
+	for (; t_e_it != t_e_it_end; t_e_it++) {
+		nedges++;
+	}
+
+    out_file << nvertices << ", " << nedges << std::endl;
+    out_file << std::endl;
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ) {
+		out_file << (*this)[*vert_it].w;
+        vert_it++;
+        if ( vert_it == vert_it_end ) {
+            out_file << std::endl;
+        } else {
+            out_file << ", ";
+        }
+	}
+    out_file << std::endl;
+    
+	//  Edges
+	tie( t_e_it, t_e_it_end ) = edges( *this );
+	for (; t_e_it != t_e_it_end;) {
+		out_file << (*this)[*t_e_it].w;
+        t_e_it++;
+        if ( t_e_it == t_e_it_end ) {
+            out_file << std::endl;
+        } else {
+            out_file << ", ";
+        }
+	}
+    out_file << std::endl;
+
+    //distance matrix n+m x n+m
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ++vert_it ) {
+        tie(v_it, v_it_end) = vertices(*this);
+    	for (; v_it != v_it_end ; ++v_it ) {
+    		out_file << this->distance_between(*vert_it,*v_it);
+            out_file << ", ";
+    	}
+    	tie( e_it, e_it_end) = edges( *this );
+    	for (; e_it != e_it_end; ) {
+    		out_file << this->distance_between(*vert_it,*e_it);
+            e_it++;
+            if ( e_it == e_it_end ) {
+                out_file << std::endl;
+            } else {
+                out_file << ", ";
+            }
+    	}
+	}
+    //out_file << std::endl;
+	tie( t_e_it, t_e_it_end ) = edges( *this );
+	for (; t_e_it != t_e_it_end; t_e_it++) {
+    	tie(v_it, v_it_end) = vertices(*this);
+    	for (; v_it != v_it_end ; ++v_it ) {
+    		out_file << this->distance_between(*v_it,*t_e_it);
+            out_file << ", ";
+    	}
+    	tie( e_it, e_it_end) = edges( *this );
+    	for (; e_it != e_it_end; ) {
+    		out_file << this->distance_between(*t_e_it,*e_it);
+            e_it++;
+            if ( e_it == e_it_end ) {
+                out_file << std::endl;
+            } else {
+                out_file << ", ";
+            }
+    	}
+    }
+    out_file << std::endl;
+    
+    
+    // vertex to edge adjacency
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ++vert_it ) {
+    	tie( e_it, e_it_end) = edges( *this );
+    	for (; e_it != e_it_end; ) {
+    	    if ( source(*e_it,*this) == *vert_it 
+                || target(*e_it,*this) == *vert_it) {
+                out_file << "1";
+            } else {
+                out_file << "0";
+            }
+            e_it++;
+            if (e_it == e_it_end )
+                out_file << std::endl;
+            else
+                out_file << ", ";
+    	}
+    }
+    out_file << std::endl;
+    
+    // edge to vertex adjacency
+	tie( e_it, e_it_end) = edges( *this );
+	for (; e_it != e_it_end; e_it++) {
+        tie(vert_it, vert_it_end) = vertices(*this);
+    	for (; vert_it != vert_it_end ;) {
+            if ( source(*e_it,*this) == *vert_it 
+                || target(*e_it,*this) == *vert_it) {
+                out_file << "1";
+            } else {
+                out_file << "0";
+            }
+            vert_it++;
+            if (vert_it == vert_it_end )
+                out_file << std::endl;
+            else
+                out_file << ", ";
+        }
+	}
+    out_file << std::endl;
+    
+    // vertex to vertex adjacency
+	tie(vert_it, vert_it_end) = vertices(*this);
+	for (; vert_it != vert_it_end ; ++vert_it ) 
+    {
+        tie(v_it, v_it_end) = vertices(*this);
+    	for (; v_it != v_it_end ; ) 
+        {
+            if ( edge(*v_it, *vert_it, *this).second ) {
+                out_file << "1";
+            } else {
+                out_file << "0";
+            }
+            ++v_it;
+            if (v_it == v_it_end )
+                out_file << std::endl;
+            else
+                out_file << ", ";
+    	}
+    }
+    out_file << std::endl;
+    
+	out_file.close(); 
+}
+
+float surveillance_graph_t::distance_between( vertex_descriptor v, vertex_descriptor w ) {
+    float distance =  pow( (*this)[v].x - (*this)[w].x, 2 ) 
+           + pow( (*this)[v].y - (*this)[w].y , 2 ) ;
+    distance = sqrt( distance );
+    return distance;
+}
+
+float surveillance_graph_t::distance_between( vertex_descriptor v, edge_descriptor e ) {
+    float distance =  pow( (*this)[v].x - (*this)[e].x, 2 ) 
+           + pow( (*this)[v].y - (*this)[e].y, 2 ) ;
+    distance = sqrt( distance );
+    return distance;
+}
+
+float surveillance_graph_t::distance_between( edge_descriptor ee, edge_descriptor e ) {
+    float distance =  pow( (*this)[ee].x - (*this)[e].x, 2 ) 
+           + pow( (*this)[ee].y - (*this)[e].y , 2 ) ;
+    distance = sqrt( distance );
+    return distance;
+}
+
+
 
 namespace graphclear
 {
@@ -548,10 +723,7 @@ void gen_rand_graph(surveillance_graph_t& g, int nV, int nE, int min_v_w,int max
     surveillance_graph_t::vertex_iterator v_i,v_end;
     tie(v_i,v_end) = vertices(g);
     for ( ; v_i != v_end; ++v_i ) {
-        //roll_die(min_v_w,max_v_w);
-        //g[*v_i].w = min_v_w + rand() % (max_v_w-min_v_w);
         g[*v_i].w = roll_die(min_v_w,max_v_w);
-        //std::cout << " " << g[*v_i].w ;
     }    
     surveillance_graph_t::edge_iterator e_i,e_end;
     tie(e_i,e_end) = edges(g);
@@ -560,9 +732,86 @@ void gen_rand_graph(surveillance_graph_t& g, int nV, int nE, int min_v_w,int max
         int b = g[target(*e_i,g)].w;
         int m = (a<b) ? a : b ;
         m = (m<max_e_w) ? m : max_e_w;
-        //g[*e_i].w = min_e_w + rand() % (m-min_e_w);
         g[*e_i].w = roll_die(min_e_w,m);
-        //std::cout << " " << g[*e_i].w;
+    }
+}
+
+void gen_rand_physical_graph(surveillance_graph_t& g, int nV, int min_v_w,int max_v_w, int min_e_w, int max_e_w, double connect_thres, double all_connect_d)
+{
+    g.clear();
+    
+    std::vector< std::pair<double,int> > dummy(nV);
+    std::vector< std::vector <std::pair<double,int> > > d_mat(nV,dummy);
+    
+    for ( int i = 0; i < nV; i++ ) {
+        // generate the i-th vertex
+        surveillance_graph_t::vertex_descriptor v = add_vertex(g);
+        g[v].x = roll_die(0,1000);
+        g[v].y = roll_die(0,1000);
+        for ( int j = 0; j < i; j++ ) {
+            d_mat[i][j].first = 
+                sqrt(pow(g[v].x - g[j].x,2) + pow(g[v].y - g[j].y,2));
+            d_mat[i][j].second = j;
+        }
+    }
+    // for ease of use - mirror the matrix across its diagonal
+    for ( int i = 0; i < nV; i++ ) {
+        d_mat[i][i].first = 0;
+        for ( int j = i+1; j < nV; j++ ) {
+            d_mat[i][j] = d_mat[j][i];
+            d_mat[i][j].second = j;
+        }
+    }
+    
+
+    for ( int i = 0; i < nV; i++ ) {
+        // connect the 3 closest vertices
+        // if all closer than 60 units
+        // connect more than 3 if they are closer than 40
+        std::vector<std::pair<double,int> > to_be_sorted = d_mat[i];
+        std::sort(to_be_sorted.begin(), to_be_sorted.end());
+        for ( int j = 1; j < nV && (j < 4 || to_be_sorted[j].first < all_connect_d); j++) {
+            // connect 
+            if ( to_be_sorted[j].first < connect_thres ) {
+                if (!edge(i,to_be_sorted[j].second,g).second ) {
+                    surveillance_graph_t::edge_descriptor e;
+                    e = add_edge(i,to_be_sorted[j].second,g).first;
+                    g[e].x = (g[i].x + g[to_be_sorted[j].second].x)/2;
+                    g[e].y = (g[i].y + g[to_be_sorted[j].second].y)/2;    
+                }
+            }
+        }
+    }
+    
+    // Oh Oh code replication (TODO: fix that)
+    // make graph connected
+	std::vector<int> component(nV);
+	int num_con_com = boost::connected_components(g, &component[0]);
+	std::cout << "Number of connected components " << num_con_com << std::endl;
+    std::vector<int> vertex_of_component(num_con_com);
+    for (int i = 0; i < component.size(); ++i ) {
+        vertex_of_component[component[i]]  = i;
+    }
+    for (int i = 0; i < vertex_of_component.size()-1; ++i ) {
+        add_edge(vertex_of_component[i],vertex_of_component[i+1], g);
+    }
+	
+	int num_con_com_final = boost::connected_components(g, &component[0]);
+	std::cout << "Number of final con components " << num_con_com_final << std::endl;
+    
+    surveillance_graph_t::vertex_iterator v_i,v_end;
+    tie(v_i,v_end) = vertices(g);
+    for ( ; v_i != v_end; ++v_i ) {
+        g[*v_i].w = roll_die(min_v_w,max_v_w);
+    }    
+    surveillance_graph_t::edge_iterator e_i,e_end;
+    tie(e_i,e_end) = edges(g);
+    for ( ; e_i != e_end; ++e_i ) {
+        int a = g[source(*e_i,g)].w;
+        int b = g[target(*e_i,g)].w;
+        int m = (a<b) ? a : b ;
+        m = (m<max_e_w) ? m : max_e_w;
+        g[*e_i].w = roll_die(min_e_w,m);
     }
     
 }
