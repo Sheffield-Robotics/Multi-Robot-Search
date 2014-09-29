@@ -5,7 +5,7 @@
 
 namespace graphclear
 {
-    const unsigned int DEBUG_LVL = 1;
+    const unsigned int DEBUG_LVL = 0;
     class cut_sequence_t;
     
 class surveillance_graph_vertex

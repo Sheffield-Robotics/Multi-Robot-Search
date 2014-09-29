@@ -378,7 +378,7 @@ void
     
 }
 
-void surveillance_graph_t::play_through_strategy(
+int surveillance_graph_t::play_through_strategy(
     cut_t& strategy, std::string filename)
 {
     if ( graphclear::DEBUG_LVL >= 1 ) {
@@ -456,6 +456,7 @@ void surveillance_graph_t::play_through_strategy(
     if ( graphclear::DEBUG_LVL >= 1 ) {
         std::cout << " total_max_cost " << total_max_cost << std::endl;
     }
+    return total_max_cost;
 }
 
 int surveillance_graph_t::count_outgoing_sequences()
@@ -684,7 +685,7 @@ void graph_to_tree(surveillance_graph_t& g, surveillance_graph_t& tree_of_g)
 }
 
 void cleanup_tree(surveillance_graph_t& tree_of_g) {
-    std::cout << " cleanup_tree " << std::endl;
+    //std::cout << " cleanup_tree " << std::endl;
     surveillance_graph_t::edge_iterator e_i,e_end;
     tie(e_i,e_end) = edges(tree_of_g);
     for ( ; e_i != e_end; ++e_i ) {
@@ -797,7 +798,7 @@ void gen_rand_physical_graph(surveillance_graph_t& g, int nV, int min_v_w,int ma
     }
 	
 	int num_con_com_final = boost::connected_components(g, &component[0]);
-	std::cout << "Number of final con components " << num_con_com_final << std::endl;
+	std::cout << "Number of final con components after connecting" << num_con_com_final << std::endl;
     
     surveillance_graph_t::vertex_iterator v_i,v_end;
     tie(v_i,v_end) = vertices(g);

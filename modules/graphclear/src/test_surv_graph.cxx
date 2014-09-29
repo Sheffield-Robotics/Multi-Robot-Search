@@ -123,7 +123,7 @@ int main (int argc, char **argv)
             n_vertices, 
             min_v_w,max_v_w, min_e_w,max_e_w, 
             connect_thres, all_connect_d);
-        std::cout<< "Graph has " ;
+        std::cout<< "Random Graph has " ;
         std::cout<< " " << num_vertices(ran_graph) << " vertices" ;
         std::cout<< " " << num_edges(ran_graph) << " edges" << std::endl;
             
@@ -137,8 +137,8 @@ int main (int argc, char **argv)
         tree_of_g.cut_strategy();
         best_c = tree_of_g.find_best_strategy();
         tree_of_g.play_through_strategy(best_c->back());
-        ran_graph.play_through_strategy(best_c->back(),filename);
-        
+        int graph_cost = ran_graph.play_through_strategy(best_c->back(),filename);
+        std::cout << "Total cost on graph:" << graph_cost << std::endl;
         cleanup_tree(tree_of_g);
     }
     

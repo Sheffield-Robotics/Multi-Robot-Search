@@ -52,7 +52,7 @@ public:
 
     cut_sequence_t* find_best_strategy();
     cut_sequence_t* best_strategy_at_vertex( vertex_descriptor v);
-    void play_through_strategy(cut_t& strategy, std::string filename = "");
+    int play_through_strategy(cut_t& strategy, std::string filename = "");
     
     void
     print_graph_to_txt_file(const char* filename);
