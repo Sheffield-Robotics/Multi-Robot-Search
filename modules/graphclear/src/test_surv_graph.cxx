@@ -1,9 +1,66 @@
 #include "graphclear/surveillance_graph.h"
-
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 using namespace graphclear;
 
-int main (int argc, char const *argv[])
+int main (int argc, char **argv)
 {
+    /* Options for this little utility */
+    int n_graphs_generated = 1;
+    int n_vertices = 20;
+    int min_v_w = 2 ;
+    int max_v_w = 10; 
+    int min_e_w = 1 ;
+    int max_e_w = 4 ;
+    double connect_thres = 200;
+    double all_connect_d = 100;
+    char c;
+    //./graphclear_exe -n 10 -v 20 -q 2 -w 10 -e 1 -r 4 -t 200 -y 100
+    while((c = getopt(argc, argv, "n:v:q:w:e:r:t:y:")) != EOF) 
+    {
+    switch(c) {
+        case 'n':
+            n_graphs_generated = atoi(optarg);
+            break;
+        case 'v':
+             n_vertices = atoi(optarg);
+             break;
+        case 'q':
+            min_v_w = atoi(optarg);
+            break;
+        case 'w':
+            max_v_w = atoi(optarg);
+            break;
+        case 'e':
+            min_e_w = atoi(optarg);
+            break;
+        case 'r':
+            max_e_w = atoi(optarg);
+            break;
+        case 't':
+            std::cout << "connect_thres=" << std::endl;
+            connect_thres = double(atof(optarg));
+            std::cout << connect_thres << std::endl;
+            break;
+        case 'y':
+            std::cout << "all_connect_d=" << std::endl;
+            all_connect_d = double(atof(optarg));
+            std::cout << all_connect_d << std::endl;
+            break;
+          default:
+          case 'h':
+          case 'H':
+             printf("\nOptions:\n");
+             printf("--------------\n");
+             printf("Oh Oh evil me.\n");
+             printf("\n");
+             exit(0);
+             break;
+       }
+    }
+    
+    
     /* code */
     std::cout << " Testing surv graph " << std::endl;
     typedef boost::small_world_iterator<boost::minstd_rand, 
@@ -60,8 +117,12 @@ int main (int argc, char const *argv[])
     }
     
     char filename[200];
-    for ( int i = 0; i < 2; i++ ) {
-        graphclear::gen_rand_physical_graph(ran_graph, 50, 5,20, 1,10, 200,100);
+    for ( int i = 0; i < n_graphs_generated; i++ ) {
+        graphclear::gen_rand_physical_graph(
+            ran_graph, 
+            n_vertices, 
+            min_v_w,max_v_w, min_e_w,max_e_w, 
+            connect_thres, all_connect_d);
         std::cout<< "Graph has " ;
         std::cout<< " " << num_vertices(ran_graph) << " vertices" ;
         std::cout<< " " << num_edges(ran_graph) << " edges" << std::endl;
