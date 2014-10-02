@@ -177,10 +177,10 @@ int main (int argc, char **argv)
 				in_file2.close();
 				in_file3.close();
 				out_file.close();
-				//std::remove(filename);
-				//std::remove(filename1);
-				//std::remove(filename2);
-				//std::remove(filename3);
+				std::remove(filename);
+				std::remove(filename1);
+				std::remove(filename2);
+				std::remove(filename3);
     }
     
     
