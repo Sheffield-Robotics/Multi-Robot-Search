@@ -17,8 +17,7 @@ int main (int argc, char **argv)
   double all_connect_d = 100;
   char c;
   //./graphclear_exe -n 10 -v 20 -q 2 -w 10 -e 1 -r 4 -t 200 -y 100
-  while((c = getopt(argc, argv, "n:v:q:w:e:r:t:y:")) != EOF) 
-    {
+  while((c = getopt(argc, argv, "n:v:q:w:e:r:t:y:")) != EOF) {
       switch(c) {
       case 'n':
         n_graphs_generated = atoi(optarg);
@@ -118,8 +117,7 @@ int main (int argc, char **argv)
     
   char filename[200], filename1[200], filename2[200], filename3[200], filename4[200];
   for ( int i = 0; i < n_graphs_generated; i++ ) {
-    graphclear::gen_rand_physical_graph(
-                                        ran_graph, 
+    graphclear::gen_rand_physical_graph(ran_graph, 
                                         n_vertices, 
                                         min_v_w,max_v_w, min_e_w,max_e_w, 
                                         connect_thres, all_connect_d);
@@ -161,10 +159,13 @@ int main (int argc, char **argv)
     std::getline(in_file2, x);
     out_file << x << ", "; 
     int k = std::stoi(x);
-    for(int t=0; t<=k; t++) {
+    for(int t=0; t<num_vertices(ran_graph); t++) {
       std::getline(in_file3, x);
-    }
-    out_file << x << "\n";
+			if(t==k)
+				out_file << x << ", ";
+    }    
+    std::getline(in_file3, x);
+    out_file << x << "\n";		
     while(std::getline(in_file, x)) {
       out_file << x << "\n";
     }
@@ -177,10 +178,10 @@ int main (int argc, char **argv)
     in_file2.close();
     in_file3.close();
     out_file.close();
-    std::remove(filename);
-    std::remove(filename1);
-    std::remove(filename2);
-    std::remove(filename4);
+    //std::remove(filename);
+    //std::remove(filename1);
+    //std::remove(filename2);
+    //std::remove(filename4);
   }
     
     
