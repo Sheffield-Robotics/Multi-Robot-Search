@@ -838,7 +838,7 @@ void gen_rand_physical_graph(surveillance_graph_t& g, int nV, int min_v_w,int ma
         surveillance_graph_t::edge_descriptor e;
         int v_1 = vertex_of_component[i];
         int v_2 = vertex_of_component[i+1];
-        e = add_edge(v_1,v_2, g);        
+        e = add_edge(v_1,v_2, g).first;        
         g[e].x = (g[v_1].x + g[v_2].x)/2;
         g[e].y = (g[v_1].y + g[v_2].y)/2;    
     }
