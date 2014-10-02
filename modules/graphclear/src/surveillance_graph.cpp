@@ -386,14 +386,19 @@ int surveillance_graph_t::play_through_strategy(
     }
     
     std::ofstream out_file;
+		std::string filename1 = filename + "1";
     if ( filename != "" ) {
-        out_file.open(filename.c_str(),std::ios::app);
+        out_file.open(filename1.c_str());
     }
     
     //cut is interpreted as a list of vertices
     cut_t::iterator it = strategy.begin();
     int total_max_cost = 0;
     int total_cost = 0, total_block_cost = 0, vertex_clear_cost = 0;
+		bool first = true;
+		int initial = 0;
+		int dist = 0;
+		int count = 0;
     while ( it != strategy.end() ) {
         vertex_clear_cost = (*this)[*it].w;
         
@@ -422,15 +427,24 @@ int surveillance_graph_t::play_through_strategy(
             boost::tie(v_i, v_i_end) = vertices(*this);
             boost::tie(e_i, e_i_end) = edges(*this);
             for ( ; v_i != v_i_end; ++v_i ) {
-                if ( *v_i == *it ) 
-                    out_file << (*this)[*v_i].w << ", ";
-                else
-                    out_file << "0, ";
+							if ( *v_i == *it ) {
+								out_file << (*this)[*v_i].w << ", ";
+								if (first) {
+									initial = count;
+								}
+							} else
+								out_file << "0, ";
+							count++;
             }
             for ( ; e_i != e_i_end;  )  {
-                if ( (*this)[*e_i].blocked) 
-                    out_file << (*this)[*e_i].w;
-                else
+							if ( (*this)[*e_i].blocked) {
+								out_file << (*this)[*e_i].w;
+								if(first) {
+									if(dist < (*this)[*e_i].w) {
+										dist = (int)(*this)[*e_i].w;
+									}
+								}
+              } else
                     out_file << "0";
                 ++e_i;
                 if ( e_i == e_i_end ) {
@@ -439,7 +453,8 @@ int surveillance_graph_t::play_through_strategy(
                     out_file << ", ";
                 }
             }
-        }
+						first = false;
+       }
         
         
         // remove all edge blocks to cleared vertices
@@ -453,6 +468,16 @@ int surveillance_graph_t::play_through_strategy(
         }
         it++;
     }
+
+		out_file << "\n1";
+		out_file.close(); 
+		std::string filename2 = filename + "2";
+    if ( filename != "" ) {
+        out_file.open(filename2.c_str());
+				out_file << initial << "\n";
+				out_file.close(); 
+		}
+
     if ( graphclear::DEBUG_LVL >= 1 ) {
         std::cout << " total_max_cost " << total_max_cost << std::endl;
     }
@@ -482,6 +507,11 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
 
 	// Prepare the file into which to write the graph
 	out_file.open(filename);//formerly out_file
+
+	std::string filename3(filename);
+	filename3 += "3";
+	std::ofstream out_file3;
+	out_file3.open(filename3.c_str());
 
     int nvertices = 0;
 	tie(vert_it, vert_it_end) = vertices(*this);
@@ -530,8 +560,11 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
             out_file << ", ";
     	}
     	tie( e_it, e_it_end) = edges( *this );
+	double dist = 0;
     	for (; e_it != e_it_end; ) {
     		out_file << this->distance_between(*vert_it,*e_it);
+		if((source(*e_it,*this) == *vert_it || target(*e_it,*this) == *vert_it) && dist < distance_between(*vert_it, *e_it))
+			dist = distance_between(*vert_it, *e_it);
             e_it++;
             if ( e_it == e_it_end ) {
                 out_file << std::endl;
@@ -539,7 +572,9 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
                 out_file << ", ";
             }
     	}
+	out_file3 << ((int)dist) << "\n";
 	}
+	out_file3.close();
     //out_file << std::endl;
 	tie( t_e_it, t_e_it_end ) = edges( *this );
 	for (; t_e_it != t_e_it_end; t_e_it++) {
