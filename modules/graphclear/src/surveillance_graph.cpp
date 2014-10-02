@@ -814,6 +814,12 @@ void gen_rand_physical_graph(surveillance_graph_t& g, int nV, int min_v_w,int ma
                     e = add_edge(i,to_be_sorted[j].second,g).first;
                     g[e].x = (g[i].x + g[to_be_sorted[j].second].x)/2;
                     g[e].y = (g[i].y + g[to_be_sorted[j].second].y)/2;    
+                    //std::cout << " Edge between " 
+                    //    << source(e,g) << ":"<< target(e,g) 
+                    //    << " " << g[e].x << ":" << g[e].y << " "
+                    //    << g[source(e,g)].x << ":" << g[source(e,g)].y << " "
+                    //    << g[target(e,g)].x << ":" << g[target(e,g)].y << " "
+                    //        << std::endl;
                 }
             }
         }
@@ -829,7 +835,12 @@ void gen_rand_physical_graph(surveillance_graph_t& g, int nV, int min_v_w,int ma
         vertex_of_component[component[i]]  = i;
     }
     for (int i = 0; i < vertex_of_component.size()-1; ++i ) {
-        add_edge(vertex_of_component[i],vertex_of_component[i+1], g);
+        surveillance_graph_t::edge_descriptor e;
+        int v_1 = vertex_of_component[i];
+        int v_2 = vertex_of_component[i+1];
+        e = add_edge(v_1,v_2, g);        
+        g[e].x = (g[v_1].x + g[v_2].x)/2;
+        g[e].y = (g[v_1].y + g[v_2].y)/2;    
     }
 	
 	int num_con_com_final = boost::connected_components(g, &component[0]);
