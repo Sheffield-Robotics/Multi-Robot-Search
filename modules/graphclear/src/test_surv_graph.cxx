@@ -116,7 +116,7 @@ int main (int argc, char **argv)
         cleanup_tree(tree_of_g);
     }
     
-    char filename[200];
+    char filename[200], filename1[200], filename2[200], filename3[200], filename4[200];
     for ( int i = 0; i < n_graphs_generated; i++ ) {
         graphclear::gen_rand_physical_graph(
             ran_graph, 
@@ -131,15 +131,57 @@ int main (int argc, char **argv)
         
         write_tree_to_file(tree_of_g);
         
-        sprintf( filename, "output/ran_graph_%d_.txt",i);
+        sprintf( filename, "output/.ran_graph_%d_.input",i);
         ran_graph.print_graph_to_txt_file(filename);
         
         tree_of_g.cut_strategy();
         best_c = tree_of_g.find_best_strategy();
         tree_of_g.play_through_strategy(best_c->back());
+        sprintf( filename1, "output/.ran_graph_%d_.input1",i);
+        sprintf( filename2, "output/.ran_graph_%d_.input2",i);
+	sprintf( filename4, "output/.ran_graph_%d_.input3",i);
         int graph_cost = ran_graph.play_through_strategy(best_c->back(),filename);
         std::cout << "Total cost on graph:" << graph_cost << std::endl;
         cleanup_tree(tree_of_g);
+
+        sprintf( filename3, "output/ran_graph_%d_.input",i);
+				std::ofstream out_file;
+				out_file.open(filename3);
+				out_file << graph_cost << ", ";
+				std::ifstream in_file, in_file3;
+				in_file.open(filename);
+				in_file3.open(filename4);
+			  std::string x;
+				std::getline(in_file, x);
+				out_file << x << ", "; 
+				std::ifstream in_file1;
+				in_file1.open(filename1);
+				std::ifstream in_file2;
+				in_file2.open(filename2);
+				std::getline(in_file2, x);
+				out_file << x << ", "; 
+				int k = std::stoi(x);
+				for(int t=0; t<=k; t++) {
+					std::getline(in_file3, x);
+					std::cout << "x = " << x << std::endl;
+				}
+				out_file << x << "\n";
+				while(std::getline(in_file, x)) {
+					out_file << x << "\n";
+				}
+				while(std::getline(in_file1, x)) {
+					out_file << x << "\n";
+				}			
+			
+				in_file.close();
+				in_file1.close();
+				in_file2.close();
+				in_file3.close();
+				out_file.close();
+				//std::remove(filename);
+				//std::remove(filename1);
+				//std::remove(filename2);
+				//std::remove(filename3);
     }
     
     
