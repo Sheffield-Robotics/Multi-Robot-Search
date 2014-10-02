@@ -764,7 +764,7 @@ namespace graphclear
     }
   }
 
-  void gen_rand_physical_graph(surveillance_graph_t& g, int nV, int min_v_w,int max_v_w, int min_e_w, int max_e_w, double connect_thres, double all_connect_d)
+  void gen_rand_physical_graph(surveillance_graph_t& g, double grid, int nV, int min_v_w,int max_v_w, int min_e_w, int max_e_w, double connect_thres, double all_connect_d)
   {
     g.clear();
     
@@ -774,8 +774,8 @@ namespace graphclear
     for ( int i = 0; i < nV; i++ ) {
       // generate the i-th vertex
       surveillance_graph_t::vertex_descriptor v = add_vertex(g);
-      g[v].x = roll_die(0,100);
-      g[v].y = roll_die(0,100);
+      g[v].x = roll_die(0,grid);
+      g[v].y = roll_die(0,grid);
       for ( int j = 0; j < i; j++ ) {
         d_mat[i][j].first = 
           sqrt(pow(g[v].x - g[j].x,2) + pow(g[v].y - g[j].y,2));

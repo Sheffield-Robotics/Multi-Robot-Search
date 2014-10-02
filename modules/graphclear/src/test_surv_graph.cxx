@@ -15,10 +15,14 @@ int main (int argc, char **argv)
   int max_e_w = 4 ;
   double connect_thres = 200;
   double all_connect_d = 100;
+	double grid = 100;
   char c;
   //./graphclear_exe -n 10 -v 20 -q 2 -w 10 -e 1 -r 4 -t 200 -y 100
-  while((c = getopt(argc, argv, "n:v:q:w:e:r:t:y:")) != EOF) {
+  while((c = getopt(argc, argv, "g:n:v:q:w:e:r:t:y:")) != EOF) {
       switch(c) {
+			case 'g':
+				grid = atoi(optarg);
+				break;
       case 'n':
         n_graphs_generated = atoi(optarg);
         break;
@@ -118,6 +122,7 @@ int main (int argc, char **argv)
   char filename[200], filename1[200], filename2[200], filename3[200], filename4[200];
   for ( int i = 0; i < n_graphs_generated; i++ ) {
     graphclear::gen_rand_physical_graph(ran_graph, 
+																				grid,
                                         n_vertices, 
                                         min_v_w,max_v_w, min_e_w,max_e_w, 
                                         connect_thres, all_connect_d);
