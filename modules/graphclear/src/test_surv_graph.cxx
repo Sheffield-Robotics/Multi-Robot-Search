@@ -163,7 +163,6 @@ int main (int argc, char **argv)
 				int k = std::stoi(x);
 				for(int t=0; t<=k; t++) {
 					std::getline(in_file3, x);
-					std::cout << "x = " << x << std::endl;
 				}
 				out_file << x << "\n";
 				while(std::getline(in_file, x)) {
