@@ -66,7 +66,7 @@ public:
 void write_tree_to_file(surveillance_graph_t& tree_of_g);
 void graph_to_tree(surveillance_graph_t& g, surveillance_graph_t& tree_of_g);
 void gen_rand_graph(surveillance_graph_t& g, int nV, int nE, int min_v_w,int max_v_w, int min_e_w, int max_e_w);
-void gen_rand_physical_graph(surveillance_graph_t& g, int nV, int min_v_w,int max_v_w, int min_e_w, int max_e_w,double connect_thres, double all_connect_d);
+ void gen_rand_physical_graph(surveillance_graph_t& g, double grid, int nV, int min_v_w,int max_v_w, int min_e_w, int max_e_w,double connect_thres, double all_connect_d);
 
 void cleanup_tree(surveillance_graph_t& tree_of_g);
 
