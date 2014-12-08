@@ -8,19 +8,26 @@
 #include <map>
 #include <vector>
 #include "utilities/filesysTools.h"
+#include "ui_viewer_interface.h"
+#include "ui_option_widget.h"
 
 using namespace std;
 
 
 using std::map;
+using namespace qglviewer;
+using namespace Ui;
 
 extern bool quit_signal;
 extern bool redraw;
 extern bool recreate;
 extern string confFile;
 
+
 Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) : QGLViewer(parent, shareWidget, flags)
 {
+    viewer_interface_ = NULL;
+    option_widget_ = NULL;
     _map = NULL;
     _vis = NULL;
     _anim = NULL;
@@ -123,6 +130,24 @@ void Viewer::init()
     resize(1024,768);
 }
 
+void Viewer::closeInterfaceWindow()
+{
+    if (viewer_interface_)
+    {
+        delete viewer_interface_;
+        viewer_interface_ = NULL;
+    }
+}
+
+void Viewer::openInterfaceWindow()
+{
+    M_INFO3("Opening interface ");
+    viewer_interface_ = new ViewerInterface();
+    QDialog *central=new QDialog(this);
+    viewer_interface_->setupUi(central);
+    central->exec();
+
+}
 
 void Viewer::draw()
 {
@@ -295,14 +320,17 @@ void Viewer::keyPressEvent(QKeyEvent *e)
                classifiedMap = true;
             }
             // Compute map 
-            bool graphCreated = _vis->computeRegionSet(_lastMapPureFileName, 
-                  Params::g_num_spanning_trees, Params::g_bias_spanning_trees);
+            bool graphCreated = _vis->computeRegionSet(
+                _lastMapPureFileName, 
+                    Yaml_Config::yaml_param["num_spanning_trees"].as<int>(),
+                    Yaml_Config::yaml_param["bias_spanning_trees"].as<bool>()
+            );
 
             if (graphCreated) 
                _anim->init("",false);
             else {
                // Reload schedule in animator
-               if (!Params::g_use_compressed_strategy) {
+               if (! Yaml_Config::yaml_param["use_compressed_strategy"].as<bool>()) {
                   string tt = _lastMapPureFileName + ".sch";
                   _anim->init(tt, true);
                }
@@ -497,6 +525,8 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         this->apply_hungarian();
         break;
     case Qt::Key_H :
+        
+        this->openInterfaceWindow();
         M_INFO1("Simple Help:\n");
         M_INFO1("- W - Toggle draw wire frame\n");
         M_INFO1("- S - Dummp screen shot (automatically numbered)\n");
@@ -907,8 +937,7 @@ bool Viewer::loadHeightmapFromTIFF(const string &filename)
     string fname_yaml = _lastMapPureFileName + ".yaml";
     Yaml_Config::load_yaml_file_into_param(fname_yaml.c_str());
     M_INFO1("Re-loading configuration file .ini for map");
-    //M_INFO1("Loaded yaml_param %f",Yaml_Config::yaml_param["max_ramp_angle"].as<float>());
-
+    M_INFO1("Loaded yaml_param %f",Yaml_Config::yaml_param["max_ramp_angle"].as<float>());
         
     int w = _geo->width();
     int h = _geo->height();

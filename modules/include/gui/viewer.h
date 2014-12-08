@@ -3,6 +3,7 @@
 
 #include <QGLViewer/qglviewer.h>
 #include <QMouseEvent>
+#include <QWidget>  
 #include <vector>
 #include <string>
 #include "utilities/angles.h"
@@ -21,19 +22,33 @@
 #include "lineclear/ChoiceTree.h"
 #include "hungarian/hungarian2.h"
 #include "utilities/Yaml_Config.h"
+#include <qmessagebox.h>
+#include <qspinbox.h>
+#include <qcombobox.h>
+#include <qradiobutton.h>
+#include <qfiledialog.h>
+#include <qlineedit.h>
+#include <qpushbutton.h>
+#include <qlabel.h>
+#include <qpoint.h>
 
 
 #define DEBUG_HUNGARIAN 1
 
 extern bool redraw;
 
-using std::vector;
-
 class HeightMap;
 class MyMouseGrabber;
+namespace Ui {
+    class ViewerInterface;
+    class OptionWidget;
+}
+
 
 class Viewer : public QGLViewer
 {
+    friend class Ui::ViewerInterface;
+    friend class Ui::OptionWidget;
    public:
       Viewer(QWidget* parent=NULL, const QGLWidget* shareWidget=0, Qt::WFlags flags=0);
  
@@ -121,7 +136,7 @@ class Viewer : public QGLViewer
       lineclear::Segment l1,l2,l3,l4; 
       std::map< std::pair<int,int>,lineclear::Segment> blocking_lines_map;
       std::map<int,int> artifical_to_cost;
-      vector< vector<NavPoint> > all_uav_poses;
+      std::vector< std::vector<NavPoint> > all_uav_poses;
       std::list<Visibility::Pos> uav_test_poses;
       std::list<Segment_Visibility_Graph::vertex> shortest_path;
 
@@ -163,7 +178,12 @@ class Viewer : public QGLViewer
       void dumpScreenShot();
       void drawAgentSizes();
       double get_max_height();
-
+      void openInterfaceWindow();
+      void closeInterfaceWindow();
+      const Viewer* qglviewer() const { 
+          const Viewer* v = this;
+          return v; };
+      
    public:
       GeoMap* _geo;
 
@@ -196,13 +216,16 @@ class Viewer : public QGLViewer
       int line_visibility_test_grid_y1;
       int line_visibility_test_grid_x2;
       int line_visibility_test_grid_y2;
+      
+      Ui::ViewerInterface* viewer_interface_;
+      Ui::OptionWidget* option_widget_;
 };
 
 
 inline void Viewer::mouseMoveEvent( QMouseEvent* const e) 
 { 
    static int oldMouseX = e->x();
-   std::cout << "Mouse at " << e->x() << ":" << e->y() << std::endl;
+   //std::cout << "Mouse at " << e->x() << ":" << e->y() << std::endl;
    if ((e->modifiers() & Qt::ShiftModifier) && (e->modifiers() & Qt::ControlModifier)) { 
       bool found = false;
       qglviewer::Vec point = camera()->pointUnderPixel(QPoint(e->x(),e->y()), found);

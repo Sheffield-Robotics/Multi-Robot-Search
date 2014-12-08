@@ -350,7 +350,7 @@ Polygon_Environment::process_visibility_polygon(
         
     }
     M_INFO2("Done with adding edges to seg visi graph for this vertex\n");
-    this->get_shortest_path(2, 40);
+    //this->get_shortest_path(2, 40);
 }
 
 std::list<Segment_Visibility_Graph::vertex> 
