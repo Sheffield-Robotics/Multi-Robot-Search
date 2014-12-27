@@ -13,6 +13,8 @@
 #include <CGAL/Polygon_2_algorithms.h>
 #include <vector>
 #include <list>
+#include <limits>  
+
 
 namespace polygonization {
 
@@ -61,7 +63,7 @@ namespace polygonization {
         
         void get_visibility_polygon(Segment s);
         void process_master_polygon();
-        void process_vertex(VisiLibity::Point &p);
+        void compute_visibility_polygon_at_vertex(VisiLibity::Point &p);
         VisiLibity::Point get_visi_vertex(int i);
         int 
         get_segment_index_for_point( VisiLibity::Point p );
@@ -71,12 +73,22 @@ namespace polygonization {
         bool
         vertex_is_reflexive( int i, 
             VisiLibity::Visibility_Polygon& v_poly );
+        int get_next_index( int i );
+        int get_prev_index( int i );
         
-        void
-        add_edge_to_visibility_graph
-        ( int i,  int type_i, int j, int type_j, double d, double x = 0, double y = 0);
+        void update_seg_to_seg(int i, int j,KERNEL::Segment_2 s, double d);
         
-        std::list<Segment_Visibility_Graph::vertex> 
+        void set_edges_type_1_to_infty(int i,int j);
+        void reset_edges_type_1_from_infty(int i,int j);
+        
+        std::vector<Segment_Visibility_Graph::edge_descriptor> extra_edges;
+        void remove_extra_edges();
+        void add_extra_edges_for(int seg_ind);
+        void add_extra_edges(int i, int j);
+        Segment_Visibility_Graph::edge_descriptor
+        add_edge_to_visibility_graph( int i,  int type_i, int j, int type_j, double d, double x = std::numeric_limits<double>::max(), double y = std::numeric_limits<double>::max(), double x2=std::numeric_limits<double>::max(),double y2=std::numeric_limits<double>::max());
+        
+        std::list<KERNEL::Segment_2>
         get_shortest_path(int i, int j);
         
         double
@@ -107,7 +119,7 @@ namespace polygonization {
         void process_visibility_polygon(
             int main_segment_index,
             KERNEL::Point_2 v, 
-            VisiLibity::Visibility_Polygon &v_poly);
+            VisiLibity::Visibility_Polygon &v_poly, bool special_run = false);
         
         
         /*
@@ -128,7 +140,9 @@ namespace polygonization {
         bool find_last( Alpha_shape::vertex_handle v, 
             Alpha_shape::vertex_handle v_start );
             
-        std::vector< std::vector<bool> >*  segment_visible_from_to;
+        std::vector< std::vector<bool> >*  seg_to_seg_visible;
+        std::vector< std::vector<double> >*  seg_to_seg_distance;
+        std::vector< std::vector<KERNEL::Segment_2> >*  seg_to_seg_segments;
 
     };
     bool pair_comparison (std::pair<int,double> a, std::pair<int,double> b);

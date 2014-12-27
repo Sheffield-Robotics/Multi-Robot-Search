@@ -169,6 +169,7 @@ void Polygon_Environment::process_master_polygon()
     VisiLibity::Polygon a_poly;
 
     // converting master polygon to a visilibity polygon
+    M_INFO1(" converting master polygon to a visilibity polygon \n");
     seg_vis_graph_type1_vertices.clear();
     seg_vis_graph_type2_vertices.clear();
     int i=0;
@@ -195,7 +196,8 @@ void Polygon_Environment::process_master_polygon()
             
         Segment_Visibility_Graph::vertex v_desc;
         Segment_Visibility_Graph::seg_vertex 
-            a_vertex(i,1, (next_x+poi.x())/2,(next_y+poi.y())/2);
+            a_vertex(i,1, (next_x+poi.x())/2,(next_y+poi.y())/2, 
+            poi.x(), poi.y(), next_x, next_y);
         v_desc = seg_vis_graph->add_vertex( a_vertex );
         seg_vis_graph_type1_vertices.push_back(v_desc);
         Segment_Visibility_Graph::seg_vertex 
@@ -204,41 +206,52 @@ void Polygon_Environment::process_master_polygon()
         seg_vis_graph_type2_vertices.push_back(v_desc);
         i++;
     }
+    M_INFO1("Added %d vertices.\n", seg_vis_graph_type2_vertices.size());
+    int n_segs = seg_vis_graph_type2_vertices.size();
     
-    M_INFO3("Added %d vertices.\n", seg_vis_graph_type2_vertices.size());
-    
-    M_INFO3("Building Visibility Graph with VisiLibity.\n");
-    //double eps = 0.00000000001;
-    my_environment = new VisiLibity::Environment(a_poly);
-    M_INFO3("Is it valid? %d.\n",my_environment->is_valid( _visi_epsilon ) );
-    VisiLibity::Polygon* env_outer_poly = &((*my_environment)[0]);
-    
-    M_INFO3("Processing vertices to compute visibility polygons.\n");
-    for ( int i = 0; i < env_outer_poly->n() ; i++ ) {
-        this->process_vertex( (*env_outer_poly)[i] );
+    std::vector<KERNEL::Segment_2> dummy(n_segs);
+    seg_to_seg_segments 
+        = new std::vector< std::vector<KERNEL::Segment_2> >(n_segs,dummy);
+    std::vector<bool > dummy2(n_segs);
+    seg_to_seg_visible
+        = new std::vector< std::vector<bool> >(n_segs,dummy2);
+    std::vector<double > dummy3(n_segs);
+    seg_to_seg_distance
+        = new std::vector< std::vector<double> >(n_segs,dummy3);
+    for (int i = 0; i < n_segs; i++ ) {
+        for (int j = 0; j < n_segs; j++ ) {
+            (*seg_to_seg_visible)[i][j] = false;
+            (*seg_to_seg_distance)[i][j] = 0;
+        }
     }
     
-    M_INFO3("N vertices %d.\n",env_outer_poly->n());
+    M_INFO1("Building Visibility Graph with VisiLibity.\n");
+    my_environment = new VisiLibity::Environment(a_poly);
+    M_INFO1("Is it valid? %d.\n",my_environment->is_valid( _visi_epsilon ) );
+    VisiLibity::Polygon* env_outer_poly = &((*my_environment)[0]);
+    
+    M_INFO1("Processing vertices to compute visibility polygons.\n");
+    for ( int i = 0; i < env_outer_poly->n() ; i++ ) {
+        this->compute_visibility_polygon_at_vertex( (*env_outer_poly)[i] );
+    }
+    M_INFO1("N vertices %d.\n",env_outer_poly->n());
     
     //// For every visiblity polygon
+    M_INFO1("Going through visibility polygons for each vertex.\n");
     for ( int ii = 0; ii < env_outer_poly->n() ; ii++ ) {
-        M_INFO3("Computing visibility flags for vertex %d.\n",ii);
-        // 1) find the min and max indices 
-        
-        KERNEL::Point_2 
-            v( this->get_visi_vertex(ii).x(), this->get_visi_vertex(ii).y() );
-        
-        M_INFO3("Visi poly %d has area %f \n",ii,visi_polies[ii].area());
+        M_INFO2("Computing visibility flags for vertex %d.\n",ii);
+        M_INFO2("Visi poly %d has area %f \n",ii,visi_polies[ii].area());
         //// area > 0 => vertices listed ccw, 
         //// area < 0 => cw 
         //// need ccw for the method below to work
+        
+        KERNEL::Point_2 
+            v( this->get_visi_vertex(ii).x(), this->get_visi_vertex(ii).y() );
         this->process_visibility_polygon( ii, v, visi_polies[ii] );   
-        //if ( ii == 3 ) 
-        //    return;
     }
     
-    M_INFO3("Finished with all visi polies\n");
-    M_INFO3("Connecting reflexive vertices that are neighbors\n");
+    M_INFO1("Finished with all visibility polygons\n");
+    M_INFO1("Additionally connecting reflexive vertices that are neighbors\n");
     Segment_Visibility_Graph::mygraph_t* g;
     Segment_Visibility_Graph::vertex v1,v2;
     g = this->seg_vis_graph->g;
@@ -246,7 +259,7 @@ void Polygon_Environment::process_master_polygon()
         int next_i = i+1;
         if ( next_i == this->seg_vis_graph_type2_vertices.size())
             next_i = 0;
-        v1 = this->seg_vis_graph_type2_vertices[next_i];
+        v1 = this->seg_vis_graph_type2_vertices[i];
         v2 = this->seg_vis_graph_type2_vertices[next_i];
         if ( (*g)[v1].reflexive && (*g)[v2].reflexive ) 
         {
@@ -255,111 +268,311 @@ void Polygon_Environment::process_master_polygon()
                 pow( (*g)[v1].p_x-(*g)[v2].p_x, 2 )
               + pow( (*g)[v1].p_y-(*g)[v2].p_y, 2 );
             dis = sqrt(dis);
-            this->add_edge_to_visibility_graph(i, 2, next_i,2, dis);
+            this->add_edge_to_visibility_graph(i, 2, next_i,2, dis, (*g)[v1].p_x,(*g)[v1].p_y,(*g)[v2].p_x,(*g)[v2].p_y );
         }
     }
+}
+
+double
+    Polygon_Environment::shortest_split_cost(int i, int j, int k) 
+{
+    // 
+    VisiLibity::Point p;
+    KERNEL::Point_2 v;
+    p.snap_to_boundary_of(*my_environment,_visi_epsilon);
+    p.snap_to_vertices_of(*my_environment,_visi_epsilon);
+    VisiLibity::Visibility_Polygon vis_poly = 
+        VisiLibity::Visibility_Polygon(p,*my_environment, _visi_epsilon); 
+    process_visibility_polygon( -1, v, vis_poly, true);
+    
 }
 
 /**
  * v_index corresponds ot vertex v
  */
-
 void
 Polygon_Environment::process_visibility_polygon(
     int v_index,
     KERNEL::Point_2 v, 
-    VisiLibity::Visibility_Polygon &v_poly)
+    VisiLibity::Visibility_Polygon &v_poly,
+    bool special_run)
 {
+    //KERNEL::Point_2 v1 = Point_2_from_poly_vertex(v_poly[0]);
+    //std::cout << "At v1 (" << v1.x() << "," << v1.y() << ") " << std::endl;
     
-    KERNEL::Point_2 v1 = Point_2_from_poly_vertex(v_poly[0]);
-    std::cout << "v1 (" << v1.x() << "," << v1.y() << ") ";
-    std::cout << std::endl;
-    
+    M_INFO3("Find the index of point v in visibility polygon\n");
     int v_index_in_visi = -1;
     for ( int i = 0; i < v_poly.n() ; i++) 
     {
         KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
-        if ( v_i == v ) {
-            v_index_in_visi = i;
-        }
-        std::cout << "v_" << i << " (" << v_i.x() << "," << v_i.y() << ") ";
-        std::cout << std::endl;
+        if ( v_i == v ) { v_index_in_visi = i; }
     }
-    std::cout << " v is v_" << v_index_in_visi << std::endl;
-    std::cout << std::endl;
     
-    M_INFO3("Check whether we have a reflexive vertex \n");
-    bool v_is_reflexive = this->vertex_is_reflexive( v_index_in_visi, v_poly );
-    (*(this->seg_vis_graph->g))
-        [this->seg_vis_graph_type2_vertices[v_index]].reflexive = v_is_reflexive;
+    if ( v_index != -1 ) {
+        M_INFO3("Check whether we have a reflexive vertex \n");
+        bool v_is_reflexive 
+            = this->vertex_is_reflexive( v_index_in_visi, v_poly );
+        (*(this->seg_vis_graph->g))
+            [this->seg_vis_graph_type2_vertices[v_index]].reflexive 
+                = v_is_reflexive;
+    }
     
-    M_INFO3("Going through visibility polygon for vertex v %d\n", v_index);
+    M_INFO3("Parsing visibility polygon for vertex-segment %d\n", v_index);
     for ( int i = 0; i < v_poly.n(); i++) 
     {
-        M_INFO1("    v_i: vertex %d of visi poly\n",i);
+        M_INFO1("    \n\nv_i: vertex %d of visi poly\n",i);
         
-        int i_next = i+1;
-        if ( i == v_poly.n() - 1 )
-            i_next = 0;
+        int i_next = (i == v_poly.n() - 1) ? 0 : i+1;
         
-        if ( v_index_in_visi == i || v_index_in_visi == i_next ) 
-        {
-            M_INFO2(" vertex is startpoint or endpoint  ");
+        if ( v_index_in_visi == i ) {
+            continue;
+        } else if ( v_index_in_visi == i_next ) {
             continue;
         }
-        
-        M_INFO1("Finding the segment index for visi poly segment\n");
+
         KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
         KERNEL::Point_2 v_next( v_poly[i_next].x(), v_poly[i_next].y() );
+        std::cout << " Point of visi vertex " << v_i << std::endl;
+        std::cout << " Point at end of segment " << v_next << std::endl;
+        M_INFO1("     Finding the segment index for visi poly segment\n");
         int endpoint_segment_index = this->is_endpoint(v_i);
         int endpoint_segment_index_next = this->is_endpoint(v_next);
-        M_INFO3("%d %d \n",endpoint_segment_index,endpoint_segment_index_next);
+        M_INFO1("     Endpoint segment indices %d - %d \n",
+             endpoint_segment_index, endpoint_segment_index_next);
         int v_i_index;
-        if ( endpoint_segment_index == -1  )
-        {
+        if ( endpoint_segment_index == -1  ) {
             v_i_index = get_segment_index_for_point(v_poly[i]);
         } else {
             v_i_index = endpoint_segment_index;
         }
+        int segment_index_next;
+        if ( endpoint_segment_index_next == -1  ) {
+            segment_index_next = get_segment_index_for_point(v_poly[i_next]);
+        } else {
+            segment_index_next = endpoint_segment_index;
+        }
+        bool in_air = abs( segment_index_next - v_i_index ) > 1 ? true : false;
         if ( v_i_index < 0 )
             return;
-        M_INFO1("... found segment index %d \n",v_i_index);
+        M_INFO1("     ... found segment index for v_i %d \n",v_i_index);
         
-        M_INFO1("Finding closest point from v to segment");
-        KERNEL::Segment_2 s(v_i,v_next);
+        M_INFO1("    Finding closest point from v to visibility polygon segment\n");
         KERNEL::Point_2 closest_p;
-        double dis = this->shortest_distance_between( s, v, closest_p );
+        double dis;
+        if ( in_air ) {
+            M_INFO1("     ... segment is in air \n");
+            dis = CGAL::to_double(CGAL::squared_distance(v_i,v));
+            closest_p = v_i;
+        } else {
+            KERNEL::Segment_2 s(v_i,v_next);
+            dis = this->shortest_distance_between( s, v, closest_p );
+        }
         dis = sqrt(dis);
-        M_INFO2("Closest point at distance %f  \n",dis);
-        std::cout << "Closest point is " << closest_p << std::endl;
+        M_INFO1("     Closest point at distance %f  \n",dis);
+        std::cout << "      Closest point is " << closest_p << std::endl;
         
-        M_INFO1("Adding edges to seg visi graph...\n");
+        M_INFO1("      ---> Adding edges to seg visi graph...\n");
+        KERNEL::Segment_2 seg_to_seg_seg(v,closest_p);
         
-        this->add_edge_to_visibility_graph(v_index, 1, v_i_index,1, dis,
-            CGAL::to_double(closest_p.x()),CGAL::to_double(closest_p.y()));
+        if ( v_index != -1 ) {
+            update_seg_to_seg(v_index, v_i_index, seg_to_seg_seg, dis);
+            update_seg_to_seg(v_i_index, v_index, seg_to_seg_seg, dis);
+            int v_prev_index = get_prev_index(v_index);
+            update_seg_to_seg(v_prev_index, v_i_index, seg_to_seg_seg, dis);
+            update_seg_to_seg(v_i_index, v_prev_index, seg_to_seg_seg, dis);
+        }
         
+        //this->add_edge_to_visibility_graph(v_index, 1, v_i_index,1, dis,
+        //    CGAL::to_double(v.x()),CGAL::to_double(v.y()),
+        //    CGAL::to_double(closest_p.x()),CGAL::to_double(closest_p.y())
+        //        );
+        //this->add_edge_to_visibility_graph(
+        //    get_prev_index(v_index), 1, v_i_index,1, dis,
+        //    CGAL::to_double(v.x()),CGAL::to_double(v.y()),
+        //    CGAL::to_double(closest_p.x()),CGAL::to_double(closest_p.y()));
+            
         if ( v_is_reflexive )
         {
             this->add_edge_to_visibility_graph(v_index, 2, v_i_index, 1, dis,
+                CGAL::to_double(v.x()),CGAL::to_double(v.y()),
                 CGAL::to_double(closest_p.x()), CGAL::to_double(closest_p.y()));
+            // if v_i 's index is also a reflexive vertex, then add a 
+            //type 2 type 2 connections    
             bool v_i_is_reflexive = this->vertex_is_reflexive(i, v_poly );
             if ( v_i_is_reflexive ) {
-                this->add_edge_to_visibility_graph(v_index, 2, v_i_index, 2, dis);
+                dis = CGAL::to_double(CGAL::squared_distance(v_i,v));
+                dis = sqrt(dis);
+                this->add_edge_to_visibility_graph(v_index, 2, v_i_index, 2, dis, 
+                    CGAL::to_double(v.x()),CGAL::to_double(v.y()),
+                    CGAL::to_double(v_i.x()),CGAL::to_double(v_i.y())
+                    );
+                M_INFO3("visi poly vertex v_i_is_reflexive i=%d, seg_ind=%d \n",
+                    i,v_i_index);
             }
         }
         
     }
     M_INFO2("Done with adding edges to seg visi graph for this vertex\n");
-    //this->get_shortest_path(2, 40);
+
 }
 
-std::list<Segment_Visibility_Graph::vertex> 
+void
+Polygon_Environment::update_seg_to_seg(int i, int j,KERNEL::Segment_2 s, double d)
+{
+    if ( (*seg_to_seg_visible)[i][j] ) {
+        // already visible, compare distances
+        if ( d < (*seg_to_seg_distance)[i][j] ) {
+            (*seg_to_seg_segments)[i][j] = s;
+            (*seg_to_seg_distance)[i][j] = d;
+        }
+    } else {
+        (*seg_to_seg_visible)[i][j] = true;
+        (*seg_to_seg_segments)[i][j] = s;
+        (*seg_to_seg_distance)[i][j] = d;
+    }
+}
+
+int 
+Polygon_Environment::get_next_index( int i ) 
+{
+    return (i == (*my_environment)[0].n() - 1) ? 0 : i+1;
+}
+
+int 
+Polygon_Environment::get_prev_index( int i ) 
+{
+    return (i == 0) ? (*my_environment)[0].n() - 1 : i-1;
+}
+
+std::list<KERNEL::Segment_2> 
 Polygon_Environment::get_shortest_path(int i, int j)
 {
+    //M_INFO1("get_shortest_path %d %d\n", i,j);
+    std::list<KERNEL::Segment_2> segment_list;
+    std::list<KERNEL::Segment_2> segment_list_path;
+    double shortest_distance = std::numeric_limits<double>::max();
+    if ( (*seg_to_seg_visible)[i][j] ) {
+        //M_INFO1("Checking existing segment (i,j)\n", i,j);
+        segment_list.push_back( (*seg_to_seg_segments)[i][j]);
+        shortest_distance = (*seg_to_seg_distance)[i][j];
+        //std::cout << "s=" << (*seg_to_seg_segments)[i][j] << std::endl;
+        //std::cout << "d=" << (*seg_to_seg_distance)[i][j] << std::endl;
+    } 
+    //M_INFO1("Planning in graph (i,j)\n", i,j);
+    
+    reset_edges_type_1_from_infty(i,j);
+    set_edges_type_1_to_infty(i,j);
+    this->add_extra_edges(i,j);
     Segment_Visibility_Graph::vertex v, w;
     v = this->seg_vis_graph_type1_vertices[i];
     w = this->seg_vis_graph_type1_vertices[j];
-    return seg_vis_graph->get_shortest_path(v,w);
+    std::list<Segment_Visibility_Graph::vertex> shortest_path;      
+    shortest_path = seg_vis_graph->get_shortest_path(v,w);
+    std::list<Segment_Visibility_Graph::vertex>::iterator spi =    
+        shortest_path.begin();
+    Segment_Visibility_Graph::vertex last_v = v;
+    Segment_Visibility_Graph::mygraph_t* g = seg_vis_graph->g;
+    double total_path_distance = 0;
+    for(++spi; spi != shortest_path.end(); ++spi) 
+    { 
+        Segment_Visibility_Graph::edge_descriptor short_e = 
+            seg_vis_graph->get_edge_shortest(last_v,*spi);
+        KERNEL::Point_2 p1((*g)[short_e].p_x, (*g)[short_e].p_y);
+        KERNEL::Point_2 p2((*g)[short_e].p_x2, (*g)[short_e].p_y2);
+        //std::cout << " vertex " << last_v << " to " << *spi << " ";
+        //std::cout << " segi=" << (*g)[short_e].segment_index << " ";
+        //std::cout << " segi=" << (*g)[short_e].segment_index2 << " ";
+        //std::cout << "d=" << (*g)[short_e].distance << " ";
+        //std::cout << 
+        //    (*g)[short_e].p_x << ":" << (*g)[short_e].p_y << " ";
+        //std::cout << 
+        //    (*g)[short_e].p_x2 << ":" << (*g)[short_e].p_y2 << std::endl;
+        KERNEL::Segment_2 s( p1,p2);
+        segment_list_path.push_back(s); 
+        total_path_distance += (*g)[short_e].distance;
+        last_v = *spi;
+    }
+    this->remove_extra_edges();
+    
+    //M_INFO1("got get_shortest_path with %d steps and d=%f \n", segment_list_path.size(),total_path_distance);
+    
+    if ( total_path_distance < shortest_distance ) {
+        //M_INFO1("Taking path\n" );
+        return segment_list_path;
+    } else {
+        //M_INFO1("Taking existing segment\n" );
+        return segment_list;
+    }
+}
+
+void Polygon_Environment::set_edges_type_1_to_infty(int i,int j)
+{
+    Segment_Visibility_Graph::mygraph_t::edge_iterator 
+        ei, e_end;
+    Segment_Visibility_Graph::mygraph_t* g = seg_vis_graph->g;
+    tie(ei,e_end) = edges( *g );
+    for ( ; ei != e_end; ei++ ) {           
+        if (  ( (*g)[ target(*ei,*g) ].type == 1 
+            && (*g)[ target(*ei,*g) ].segment_index != i 
+            && (*g)[ target(*ei,*g) ].segment_index != j ) 
+            || ( (*g)[ source(*ei,*g) ].type == 1 
+                && (*g)[ source(*ei,*g) ].segment_index != i
+                && (*g)[ source(*ei,*g) ].segment_index != j ))
+        {
+            //std::cout << " Edge " << *ei << " to infty " << std::endl;
+            (*g)[*ei].distance = std::numeric_limits<double>::max();
+        } else {
+            //std::cout << " Edge " << *ei << " NOT TO infty " << std::endl;
+        }
+    }
+}
+
+void Polygon_Environment::reset_edges_type_1_from_infty(int i,int j) {
+    Segment_Visibility_Graph::mygraph_t::edge_iterator 
+        ei, e_end;
+    Segment_Visibility_Graph::mygraph_t* g = seg_vis_graph->g;
+    tie(ei,e_end) = edges( *g );
+    for ( ; ei != e_end; ei++ ) {
+        //std::cout << " Edge " << *ei << " RESET " << std::endl;
+        (*g)[*ei].distance = (*g)[*ei].distance_temp;
+    }
+}
+
+void Polygon_Environment::remove_extra_edges() {
+    for ( int i = 0; i < extra_edges.size(); i++ ) {
+            remove_edge( extra_edges[i], *(this->seg_vis_graph->g) );
+    }
+    extra_edges.clear();
+}
+
+
+void Polygon_Environment::add_extra_edges(int i, int j) {
+    extra_edges.clear();
+    add_extra_edges_for(i);
+    add_extra_edges_for(j);    
+}
+
+void Polygon_Environment::add_extra_edges_for(int seg_ind) {
+    Segment_Visibility_Graph::mygraph_t* g = this->seg_vis_graph->g;
+    Segment_Visibility_Graph::vertex v, w,z;
+    v = this->seg_vis_graph_type1_vertices[seg_ind];
+    w = this->seg_vis_graph_type2_vertices[seg_ind];
+    z  =  this->seg_vis_graph_type2_vertices[get_next_index(seg_ind)];
+    Segment_Visibility_Graph::edge_descriptor e;
+    if ( (*g)[w].reflexive ) {
+        e = this->add_edge_to_visibility_graph(
+           seg_ind, 2, 
+           seg_ind, 1, 
+           0, (*g)[w].p_x, (*g)[w].p_y, (*g)[w].p_x, (*g)[w].p_y);
+        extra_edges.push_back(e);
+    }
+    if ( (*g)[z].reflexive ) {
+        e = this->add_edge_to_visibility_graph(
+           get_next_index(seg_ind), 2, 
+           seg_ind, 1, 
+           0, (*g)[w].p_x, (*g)[w].p_y, (*g)[w].p_x, (*g)[w].p_y);
+        extra_edges.push_back(e);
+    }
 }
 
 Segment_Visibility_Graph::vertex
@@ -374,10 +587,15 @@ Polygon_Environment::get_segment_visibility_vertex(int i, int type_i)
 }
 
 
-void
-Polygon_Environment::add_edge_to_visibility_graph
-    ( int i,  int type_i, int j, int type_j, double d, double x, double y )
+Segment_Visibility_Graph::edge_descriptor
+Polygon_Environment::add_edge_to_visibility_graph( int i,  int type_i, int j, int type_j, double d, double x, double y, double x2,double y2 )
 {
+    //std::cout 
+    //    << "  i=" << i << ", " << type_i
+    //    << " j=" << j << ", " << type_j 
+    //    << " d=" << d << " " 
+    //    << x << ":" << y << " " << x2 << ":" << y2 
+    //    << std::endl;
     Segment_Visibility_Graph::vertex v, w;
     if ( type_i == 1 )
         v = this->seg_vis_graph_type1_vertices[i];
@@ -387,7 +605,9 @@ Polygon_Environment::add_edge_to_visibility_graph
         w = this->seg_vis_graph_type1_vertices[j];
     else
         w = this->seg_vis_graph_type2_vertices[j];
-    seg_vis_graph->add_edge(v, w, x, y, d);
+    Segment_Visibility_Graph::edge_descriptor e;
+    e = seg_vis_graph->add_edge(v, w, x, y, x2,y2, d);
+    return e;
 }
 
 int
@@ -410,12 +630,14 @@ Polygon_Environment::vertex_is_reflexive(
     int i, VisiLibity::Visibility_Polygon& v_poly ) 
 {
     bool is_reflexive = false;
-    KERNEL::Point_2 v( v_poly[i].x(), v_poly[i].y() );
+    
     int v_neigh1_i,v_neigh2_i;
     if ( i == 0 ) v_neigh1_i = v_poly.n()-1;
     else  v_neigh1_i = i-1;
     if ( i == v_poly.n() ) v_neigh2_i = 0;
     else  v_neigh2_i = i+1;
+    
+    KERNEL::Point_2 v( v_poly[i].x(), v_poly[i].y() );
     KERNEL::Point_2 v_neigh1( v_poly[v_neigh1_i].x(), v_poly[v_neigh1_i].y() );
     KERNEL::Point_2 v_neigh2( v_poly[v_neigh2_i].x(), v_poly[v_neigh2_i].y() );
     KERNEL::Orientation orientation_at_v 
@@ -505,7 +727,7 @@ Polygon_Environment::get_segment_index_for_point( VisiLibity::Point p )
 }
 
 
-void Polygon_Environment::process_vertex(VisiLibity::Point &p)
+void Polygon_Environment::compute_visibility_polygon_at_vertex(VisiLibity::Point &p)
 {
     //M_INFO3("Processing vertex\n");
     p.snap_to_boundary_of(*my_environment,_visi_epsilon);

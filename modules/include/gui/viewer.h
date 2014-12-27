@@ -92,8 +92,9 @@ class Viewer : public QGLViewer
       void drawVoronoiDiagram();
       void drawStrategyStep();
       void drawSegment(lineclear::Segment s);
-      void draw_sphere_at(int x, int y, double h );
-      void draw_line_from_to(int gx,int gy, int g2x, int g2y, double h);
+      void draw_sphere_at(int x, int y, double h, double size);
+      void draw_line_from_to(int gx,int gy, int g2x, int g2y, double h, double h2);
+      void drawText3D(double p1x,double p1y, double ground, std::string txt);
       void drawLine(double p1x,double p1y, double p2x, double p2y, double ground = 0);
       void draw_UAV_at(int x, int y);
       void compute_lineclear_strategy();
@@ -105,6 +106,10 @@ class Viewer : public QGLViewer
       void next_step();
       void setPursuerPosFromUTM(double easting, double northing);
       void triggerSetRobotPose();
+      
+      void print_help();
+      void draw_gui_text();
+      
 
       void init_pol();
       void init_env();
@@ -130,6 +135,7 @@ class Viewer : public QGLViewer
       int updated_cost;
       int visi_poly_index;
       Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it, v_end;
+      int segment_plan_to_vertex_id;
       std::list<int> obstacle_sequence;
       std::list<int>::iterator obstacle_sequence_it;
       std::list<int> cleared_obstacles;
@@ -138,7 +144,7 @@ class Viewer : public QGLViewer
       std::map<int,int> artifical_to_cost;
       std::vector< std::vector<NavPoint> > all_uav_poses;
       std::list<Visibility::Pos> uav_test_poses;
-      std::list<Segment_Visibility_Graph::vertex> shortest_path;
+      std::list<polygonization::KERNEL::Segment_2> shortest_path;
 
    public:
       bool showHeightMap;
@@ -159,6 +165,11 @@ class Viewer : public QGLViewer
       bool drawVisiGraph;
       bool drawVisiGraphVertex;
       bool triggerDumpScreenShot;
+      bool only_plot_enabled;
+      Segment_Visibility_Graph::mygraph_t::vertex_iterator 
+          only_plot_vis_seg_graph_vertex;
+      Segment_Visibility_Graph::mygraph_t::vertex_iterator 
+          only_plot_vis_seg_graph_vertex_end;
 
    protected :
       virtual void init();
@@ -177,6 +188,7 @@ class Viewer : public QGLViewer
       virtual void postSelection(const QPoint& point);
       void dumpScreenShot();
       void drawAgentSizes();
+      double get_max_height_for_draw();
       double get_max_height();
       void openInterfaceWindow();
       void closeInterfaceWindow();
