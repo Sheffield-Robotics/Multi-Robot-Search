@@ -1228,23 +1228,36 @@ void Viewer::toggle_visi_graph_vertex()
     v = *v_it;
     segment_plan_to_vertex_id = (*g)[v].segment_index;
     int tries = 100;
-    while ( segment_plan_to_vertex_id == (*g)[v].segment_index && tries > 0 ) {
+    while ( abs(segment_plan_to_vertex_id - (*g)[v].segment_index) < 2
+        && tries > 0 ) {
         segment_plan_to_vertex_id = rand() 
             % _pol->seg_vis_graph_type1_vertices.size();
         tries--;
     }
-    M_INFO3(" Going from vertex %d to vertex %d\n", 
-        (*g)[v].segment_index, segment_plan_to_vertex_id);
+    tries = 100;
+    segment_plan_to_vertex_id2 = (*g)[v].segment_index;
+    while ( 
+        ( abs(segment_plan_to_vertex_id2 - (*g)[v].segment_index) < 2 || 
+            abs(segment_plan_to_vertex_id2 - segment_plan_to_vertex_id) < 2 )
+            && tries  > 0 ) {
+        segment_plan_to_vertex_id2 = rand() 
+            % _pol->seg_vis_graph_type1_vertices.size();
+        tries--;
+    }
+    M_INFO3(" Going from vertex %d to vertex %d splitting on %d\n", 
+        (*g)[v].segment_index, segment_plan_to_vertex_id,segment_plan_to_vertex_id2);
     w = _pol->get_segment_visibility_vertex( segment_plan_to_vertex_id, 1 );
+    double dum;
     shortest_path = 
-    _pol->get_shortest_path((*g)[v].segment_index,segment_plan_to_vertex_id);
+    _pol->get_shortest_path((*g)[v].segment_index,segment_plan_to_vertex_id,dum);
     redraw = true;
     
-    //std::list<polygonization::KERNEL::Segment_2>::iterator spi =   shortest_path.begin();
-    //for(++spi; spi != shortest_path.end(); ++spi) 
-    //{
-    //    std::cout << *spi << std::endl;
-    //}
+    double shortest_split_c = 0;
+    
+    shortest_split = _pol->shortest_split_cost(
+        (*g)[v].segment_index, 
+        segment_plan_to_vertex_id, 
+        segment_plan_to_vertex_id2, shortest_split_c);
 }
 
 void Viewer::drawFrequinPoses() {
@@ -2010,6 +2023,19 @@ void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vert
             this->get_max_height_for_draw()*1.08,
             this->get_max_height_for_draw()* 1.08);
     }
+    glColor3f(0.0, 0.0, 1.0);
+    spi = shortest_split.begin();
+    for(; spi != shortest_split.end(); ++spi) 
+    {   
+        this->draw_line_from_to( 
+            CGAL::to_double(spi->source().x()),
+            CGAL::to_double(spi->source().y()), 
+            CGAL::to_double(spi->target().x()),
+            CGAL::to_double(spi->target().y()), 
+            this->get_max_height_for_draw()*1.1,
+            this->get_max_height_for_draw()* 1.1);
+    }
+    
     
     return ; 
     glColor3f(0.0, 1.0, 0.0);

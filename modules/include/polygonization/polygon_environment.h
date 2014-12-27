@@ -76,10 +76,14 @@ namespace polygonization {
         int get_next_index( int i );
         int get_prev_index( int i );
         
+        KERNEL::Point_2 get_point_of_segment_on_segment( KERNEL::Segment_2 s, int k, bool& success ); 
+        
+        
         void update_seg_to_seg(int i, int j,KERNEL::Segment_2 s, double d);
         
         void set_edges_type_1_to_infty(int i,int j);
-        void reset_edges_type_1_from_infty(int i,int j);
+        void reset_edges_type_1_from_infty();
+        Segment_Visibility_Graph::vertex special_v;
         
         std::vector<Segment_Visibility_Graph::edge_descriptor> extra_edges;
         void remove_extra_edges();
@@ -89,8 +93,19 @@ namespace polygonization {
         add_edge_to_visibility_graph( int i,  int type_i, int j, int type_j, double d, double x = std::numeric_limits<double>::max(), double y = std::numeric_limits<double>::max(), double x2=std::numeric_limits<double>::max(),double y2=std::numeric_limits<double>::max());
         
         std::list<KERNEL::Segment_2>
-        get_shortest_path(int i, int j);
+        get_shortest_path(int i, int j, double& final_dist);
         
+        std::list<KERNEL::Segment_2>
+        plan_in_svg(Segment_Visibility_Graph::vertex v,
+            Segment_Visibility_Graph::vertex w,  double& total_path_distance);
+            
+        void remove_special_vertex_direct_visible();
+            
+        void remove_special_vertex_edges();
+            
+        std::list<KERNEL::Segment_2>
+        shortest_split_cost(int i, int j, int k, double& cost);
+
         double
         shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,
              KERNEL::Point_2& closest_point );

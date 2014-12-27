@@ -136,6 +136,7 @@ class Viewer : public QGLViewer
       int visi_poly_index;
       Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it, v_end;
       int segment_plan_to_vertex_id;
+      int segment_plan_to_vertex_id2;
       std::list<int> obstacle_sequence;
       std::list<int>::iterator obstacle_sequence_it;
       std::list<int> cleared_obstacles;
@@ -145,6 +146,7 @@ class Viewer : public QGLViewer
       std::vector< std::vector<NavPoint> > all_uav_poses;
       std::list<Visibility::Pos> uav_test_poses;
       std::list<polygonization::KERNEL::Segment_2> shortest_path;
+      std::list<polygonization::KERNEL::Segment_2> shortest_split;
 
    public:
       bool showHeightMap;
