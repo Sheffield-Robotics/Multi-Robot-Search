@@ -40,6 +40,7 @@ CutSequence* ChoiceSet::get_cut_sequence(int i) {
     if ( 0 <= i && i < int(_sequences.size()) ) {
         return &( _sequences[i].first );
     }
+    std::cout << " ERROR requested cut sequence is null" << std::endl;
     return NULL;
 }
 
@@ -48,13 +49,17 @@ CutSequence* ChoiceSet::get_cut_sequence(int i, int& o) {
         o = _sequences[i].second;
         return &( _sequences[i].first );
     }
+    std::cout << " ERROR requested cut sequence is null" << std::endl;
     return NULL;
 }
 
 CutSequence* ChoiceSet::get_best_cut_sequence() {
     // go through cut sequence and pick the best
-    if ( _sequences.size() == 0 ) 
+    if ( _sequences.size() == 0 ) {
+        std::cout << " Warning size of sequences is 0 " << std::endl;
         return NULL;
+    }
+        
     int best_i = 0;
     int cost = -1, c;
     int up_to_i = int(_sequences.size());
@@ -125,6 +130,9 @@ bool ChoiceSet::is_dominated_weakly( CutSequence& cs ) {
 
 void ChoiceSet::remove_dominated() {
     // 
+    if ( DEBUG_CHOICESET >= 1 ) {
+        std::cout << " REMOVE DOMINATED " << std::endl;
+    }
     std::vector<bool> to_be_deleted(this->cut_sequences_size());
     for ( int i = 0; i < this->cut_sequences_size(); i++ ) {
         // check if this cut sequence is dominated
@@ -138,8 +146,13 @@ void ChoiceSet::remove_dominated() {
         }
     }
     int removed = 0;
-    for ( int i = this->cut_sequences_size()-1; i > 0; i-- ){
+    for ( int i = this->cut_sequences_size()-1; i >= 0; i-- ){
+        std::cout << " Checking for removal  " << i << std::endl;
         if ( to_be_deleted[i] ) {
+            if ( DEBUG_CHOICESET >= 1 ) {
+                std::cout << " REMOVING  " << i << std::endl;
+                _sequences[i].first.print();
+            }
             removed++;
             _sequences.erase(_sequences.begin() + i );
         }

@@ -17,6 +17,7 @@ using namespace std;
 using std::map;
 using namespace qglviewer;
 using namespace Ui;
+using namespace Yaml_Config;
 
 extern bool quit_signal;
 extern bool redraw;
@@ -52,6 +53,7 @@ Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) 
     drawWireFrame = false;
     drawVisiPoli = false;
     drawVisiGraphVertex = false;
+    drawVisiGraph = false;
     drawStrategyStepFlag = false;
     drawFrequinPosesFlag = false;
     drawSweepStateFlag = false;
@@ -521,7 +523,7 @@ void Viewer::print_help() {
 void Viewer::load_choice_tree() {
     if ( _ct == NULL ) {
         init_env();
-        _ct = new lineclear::ChoiceTree( _env, _vis);
+        _ct = new lineclear::ChoiceTree( _env, _vis,_pol);
         string fname = _lastMapPureFileName + ".ct";
         M_INFO1("Loading choice tree from file %s \n",fname.c_str());
         _ct->load_from_file(fname);
@@ -559,7 +561,7 @@ void Viewer::compute_lineclear_strategy() {
         init_env();
         M_INFO1("Using %s.ct as file\n",_lastMapPureFileName.c_str());
         M_INFO1("Creating and initializing first choice tree\n");
-        _ct = new lineclear::ChoiceTree( _env, _vis );
+        _ct = new lineclear::ChoiceTree( _env, _vis, _pol );
         M_INFO1("Initializing choice tree (takes a long time)\n");
         _ct->init_choice_tree();
         save_choice_tree();
@@ -687,7 +689,7 @@ void Viewer::next_step() {
                 std::cout << " adding cost " << std::endl;
                 double d = sqrt(CGAL::to_double(o_seg.squared_length()));
                 int art_cost = ceil ( d );
-                if ( Params::g_use_new_sensing_range ) {
+                if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() ) {
                     art_cost = ceil ( d / (2*_vis->get_max_steps()) );
                 }
                 artifical_to_cost[a] = art_cost;
@@ -731,12 +733,33 @@ void Viewer::next_step() {
         std::cout << " extending left= " << left_obstacle
             << " and right=" << right_obstacle << " onto "
             << new_obstacle << std::endl;
-        int ext_cost = _env->get_shortest_extension(left_obstacle,
-            right_obstacle, new_obstacle,l1,l2);
+        int ext_cost;
+        if ( yaml_param["use_poly_environment_costs"].as<int>() ) {
+            double cost1, cost2;
+            int split_point_index;
+            //std::list<polygonization::KERNEL::Segment_2> split_point_list; 
+            int p_i = left_obstacle,p_j = right_obstacle,p_k = new_obstacle;
+            _pol->fix_index(p_i); _pol->fix_index(p_j);_pol->fix_index(p_k);
+            p_i--;p_j--;p_k--;
+            split_point_list = _pol->shortest_split_costs(p_i,p_j,p_k, 
+                cost1, cost2, split_point_index);
+            ext_cost = int(ceil(cost1)) + int(ceil(cost2));
+            l1 = split_point_list.front();
+            std::list<polygonization::KERNEL::Segment_2>::iterator it, it_end;
+            it = split_point_list.begin();
+            it_end = split_point_list.end();
+            for ( int i = 0; i <= split_point_index && it != it_end; i++ ) {
+                l2 = *it;
+            }
+        } else {
+            ext_cost = _env->get_shortest_extension(left_obstacle,
+                        right_obstacle, new_obstacle,l1,l2);
+        }
         
-        if ( Params::g_use_new_sensing_range )
+        if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() )
             ext_cost = ceil ( ext_cost / (2*_vis->get_max_steps()) );
-        
+
+        M_INFO2("_vis->get_max_steps() - range %d", _vis->get_max_steps());
         
         M_INFO2("Extension costs %d", ext_cost);
         //What's the choice set we are extending?
@@ -776,10 +799,17 @@ void Viewer::next_step() {
         std::cout << " removing old block " << std::endl;
         std::pair<int,int> b_p(left_obstacle, right_obstacle);
         blocking_lines_map.erase(b_p);
-        int b_removed = _env->get_shortest_line_inside_cost(
-            left_obstacle, right_obstacle);
+        blocking_lines_map2.erase(b_p);
+        int b_removed;
+        if ( yaml_param["use_poly_environment_costs"].as<int>() ) {
+            b_removed = _pol->get_block_cost(left_obstacle, right_obstacle);
+        } else {
+            b_removed = _env->get_shortest_line_inside_cost(
+                left_obstacle, right_obstacle);
+        }
+         
         if ( b_removed != -1 ) {
-            if ( Params::g_use_new_sensing_range )
+            if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() )
                 b_removed = ceil ( b_removed / (2*_vis->get_max_steps()) );
             current_blocking_cost -= b_removed ;
         }
@@ -788,20 +818,47 @@ void Viewer::next_step() {
         if ( max_cost < current_cost ) {
             max_cost = current_cost;
         }
+        std::cout << " MAXC= " << max_cost << std::endl;
         std::cout << " COST= " << current_cost << std::endl;
-        std::cout << " MAX COST= " << max_cost << std::endl;
-        std::cout << " ext_cost= " << ext_cost << std::endl;
-        std::cout << " current_blocking_cost= " << current_blocking_cost << std::endl;
-        std::cout << " artifical_cost= " << artifical_cost << std::endl;
-        std::cout << " just removed block= " << b_removed << std::endl;
         
+        std::cout << " SPLIT= " << ext_cost << std::endl;
+        std::cout << " BLOC= " << current_blocking_cost << std::endl;
+        std::cout << " artif= " << artifical_cost << std::endl;
+        std::cout << " -BLO= " << b_removed << std::endl;
         
-        l3 = _env->get_shortest_line_inside(new_obstacle,right_obstacle);
-        if ( l3.target() != l3.source() ) {
+        //right and new obstacle new block
+        std::list<polygonization::KERNEL::Segment_2> block_point_list;
+        double right_block_distance;
+        if ( yaml_param["use_poly_environment_costs"].as<int>() ) {
+            int p_i = new_obstacle, p_j = right_obstacle;
+            _pol->fix_index(p_i); _pol->fix_index(p_j);
+            p_i--; p_j--;
+            block_point_list = _pol->get_shortest_path(p_i,p_j,right_block_distance);
+            l3 = block_point_list.front();
+            std::list<polygonization::KERNEL::Segment_2>::iterator list_it;
+            
+            for ( list_it = block_point_list.begin(); list_it != block_point_list.end(); list_it++ )
+            {
+                std::cout << *list_it << " - ";
+            }
+            std::cout << std::endl;
+        } else {
+            l3 = _env->get_shortest_line_inside(new_obstacle,right_obstacle);
+        }
+        if ( l3.target() != l3.source() 
+                || (yaml_param["use_poly_environment_costs"].as<int>() 
+                    && right_block_distance > 0 ) ) {
             std::pair<int,int> block_between(new_obstacle,right_obstacle);
             blocking_lines_map[block_between] = l3;
-            int b_right = _env->get_line_cost(l3);
-            if ( Params::g_use_new_sensing_range )
+            blocking_lines_map2[block_between] = block_point_list;
+            int b_right;
+            if ( yaml_param["use_poly_environment_costs"].as<int>()  )  {
+                b_right = ceil( right_block_distance );
+            } else {
+                b_right = _env->get_line_cost(l3);
+            }
+            
+            if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() )
                 b_right = ceil ( b_right / (2*_vis->get_max_steps()) );
             
             if ( b_right > 0 ) {
@@ -809,21 +866,41 @@ void Viewer::next_step() {
             }
             std::cout << " right_obstacle new block= " << b_right << std::endl;
         }
-        l4 = _env->get_shortest_line_inside(left_obstacle,new_obstacle);
-        if ( l4.target() != l4.source() ) {
+        
+        //left and new obstalce new block
+        std::list<polygonization::KERNEL::Segment_2> block_point_list2;
+        double left_block_distance;
+        if ( yaml_param["use_poly_environment_costs"].as<int>() ) {
+            int p_i = left_obstacle, p_j = new_obstacle;
+            _pol->fix_index(p_i); _pol->fix_index(p_j);
+            p_i--; p_j--;
+            block_point_list2 = _pol->get_shortest_path(p_i,p_j,
+                left_block_distance);
+            l4 = block_point_list2.front();
+        } else {
+            l4 = _env->get_shortest_line_inside(left_obstacle,new_obstacle);
+        }
+        if ( l4.target() != l4.source() || (yaml_param["use_poly_environment_costs"].as<int>() 
+                    && left_block_distance > 0 )) {
             std::pair<int,int> block_between(left_obstacle, 
                 new_obstacle);
-            int b_left = _env->get_line_cost(l4);
-            if ( Params::g_use_new_sensing_range )
+            int b_left; 
+            if ( yaml_param["use_poly_environment_costs"].as<int>()  ) {
+                b_left = ceil( left_block_distance );
+            } else {
+                b_left = _env->get_line_cost(l4);
+            }
+            if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() )
                 b_left = ceil ( b_left / (2*_vis->get_max_steps()) );
             
             blocking_lines_map[block_between] = l4;
+            blocking_lines_map2[block_between] = block_point_list2;
             if ( b_left > 0 ) {
                 current_blocking_cost += b_left;
             }
             std::cout << " left_obstacle new block= " << b_left << std::endl;
         }
-        std::cout << " new blocking = " << current_blocking_cost << std::endl;
+        std::cout << " BLOCK = " << current_blocking_cost << std::endl;
     } else {
         // we do not yet have enough obstacle indices to draw any lines
     }
@@ -1998,9 +2075,10 @@ Viewer::draw_gui_text()
 void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it)
 {
     Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
+    if ( g == NULL ) return;
     std::list<polygonization::KERNEL::Segment_2>::iterator 
         spi = shortest_path.begin();
-
+    
     Segment_Visibility_Graph::vertex v,w,last_v;
     v = *v_it;
     w = _pol->get_segment_visibility_vertex( segment_plan_to_vertex_id, 1 );
@@ -2119,12 +2197,17 @@ void Viewer::drawStrategyStep()
     glLineWidth(12.0);
     glColor3f(1.0, 1.0, 0.0);
     //std::cout << " Drawing strategy step " << std::endl;
-    if ( l1.target() != l1.source() )
-        this->drawSegment(l1);
-    if ( l2.target() != l2.source() )
-        this->drawSegment(l2);
+    std::list<polygonization::KERNEL::Segment_2>::iterator split_it;
+    split_it = split_point_list.begin();
+    while ( split_it != split_point_list.end() ) {
+        drawSegment( *split_it );
+        split_it++;
+    }
+    //if ( l1.target() != l1.source() )
+    //    this->drawSegment(l1);
+    //if ( l2.target() != l2.source() )
+    //    this->drawSegment(l2);
     
-    //std::cout << " Drawing blocking lines " << std::endl;
     glLineWidth(8.0);
     glColor3f(0.0, 0.0, 1.0);
     std::map< std::pair<int,int>,lineclear::Segment>::iterator i;
@@ -2133,9 +2216,22 @@ void Viewer::drawStrategyStep()
         drawSegment( i->second );
         i++;
     }
+    
+    std::map< std::pair<int,int>,std::list<polygonization::KERNEL::Segment_2> >::iterator i2;
+    i2 = blocking_lines_map2.begin();
+    while ( i2 != blocking_lines_map2.end() ) {
+        std::list<polygonization::KERNEL::Segment_2>::iterator list_it;
+        list_it = i2->second.begin();
+        while ( list_it != i2->second.end() ) {
+            //*list_it->target()
+            drawSegment( *list_it );
+            list_it++;
+        }   
+        i2++;
+    }
 }
 
-void Viewer::drawSegment(lineclear::Segment s) {
+void Viewer::drawSegment(lineclear::Segment s, double add_ground) {
     double ground = this->get_max_height() / 1000.0;
     double wx,wy,w2x,w2y;
     int gx = ceil( CGAL::to_double(s.source().x())); 
@@ -2149,8 +2245,8 @@ void Viewer::drawSegment(lineclear::Segment s) {
     _map->grid2world(w2x,w2y,g2x,g2y);
     drawSphere(0.1,wx,wy,ground);
     glBegin(GL_LINES);
-     glVertex3f(wx,wy, ground);
-     glVertex3f(w2x,w2y, ground);
+     glVertex3f(wx,wy, ground + add_ground);
+     glVertex3f(w2x,w2y, ground + add_ground);
     glEnd();
 }
 
@@ -2456,7 +2552,7 @@ void Viewer::drawVoronoiDiagram() {
             lineclear::Segment s(e_i->source()->point(),
                 e_i->target()->point());
             //std::cout << s << std::endl;
-            drawSegment(s);
+            drawSegment(s, this->get_max_height_for_draw());
         }
     }
 }

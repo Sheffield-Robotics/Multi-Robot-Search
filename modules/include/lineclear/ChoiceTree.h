@@ -18,6 +18,7 @@
 #include "lineclear/Environment.h"
 #include "lineclear/ObstacleSequence.h"
 #include "lineclear/SurveillanceGraph.h"
+#include "polygonization/polygon_environment.h"
 #include "heightmap/visibility.h"
 #include "uavmodel/navpoint.h"
 #include <assert.h>
@@ -39,6 +40,8 @@ namespace lineclear {
     
         ChoiceTree(Environment* e);
         ChoiceTree(Environment* e, Visibility* v);
+        ChoiceTree(Environment* e, Visibility* v, 
+            polygonization::Polygon_Environment* pe);
         void init_choice_tree();
         ChoiceSet* get_choice_set_at(int i, int k);
         void save_to_file( std::string filename );
@@ -81,6 +84,7 @@ namespace lineclear {
         
         ChoiceSet* _zero_choiceset;
         Environment* _e;
+        polygonization::Polygon_Environment* _pol_env;
         Visibility* _v;
         
         int _n;

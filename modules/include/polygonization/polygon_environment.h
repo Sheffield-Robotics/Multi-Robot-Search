@@ -15,6 +15,7 @@
 #include <list>
 #include <limits>  
 
+#define DEBUG_POLYGON_ENVIRONMENT 0
 
 namespace polygonization {
 
@@ -65,6 +66,7 @@ namespace polygonization {
         void process_master_polygon();
         void compute_visibility_polygon_at_vertex(VisiLibity::Point &p);
         VisiLibity::Point get_visi_vertex(int i);
+        bool index_bound_check( int i );
         int 
         get_segment_index_for_point( VisiLibity::Point p );
         
@@ -92,8 +94,23 @@ namespace polygonization {
         Segment_Visibility_Graph::edge_descriptor
         add_edge_to_visibility_graph( int i,  int type_i, int j, int type_j, double d, double x = std::numeric_limits<double>::max(), double y = std::numeric_limits<double>::max(), double x2=std::numeric_limits<double>::max(),double y2=std::numeric_limits<double>::max());
         
+        bool is_necessary_block(int i, int j);        
+        bool is_necessary_split(int i, int j, int k);
+        
+        
         std::list<KERNEL::Segment_2>
         get_shortest_path(int i, int j, double& final_dist);
+        std::vector< std::vector < std::list<KERNEL::Segment_2> > >     
+            *get_shortest_path_cache;
+        std::vector< std::vector < double > >     
+            *get_shortest_path_distance_cache;
+        std::vector< std::vector < bool > >     
+            *get_shortest_path_cache_filled;
+        bool check_path_cache(int i, int j);
+        std::list<KERNEL::Segment_2> get_path_cache(int i, int j);
+        double get_path_distance(int i, int j);
+        void set_path_cache(int i, int j, std::list<KERNEL::Segment_2> l, double d);
+        
         
         std::list<KERNEL::Segment_2>
         plan_in_svg(Segment_Visibility_Graph::vertex v,
@@ -102,18 +119,36 @@ namespace polygonization {
         void remove_special_vertex_direct_visible();
             
         void remove_special_vertex_edges();
-            
+        
+        double get_block_distance(int i, int j);
+        int get_block_cost(int i, int j, double r = 1);
+        bool get_split_distances(int i, int j, int k, 
+            double& d1, double& d2, double r = 1);
+        int get_split_cost(int i, int j, int k, double r = 1);
         std::list<KERNEL::Segment_2>
         shortest_split_cost(int i, int j, int k, double& cost);
-
+        std::list<KERNEL::Segment_2>
+        shortest_split_costs(int i, int j, int k, 
+            double& cost1, double& cost2, int& split_point_index);
+        
+        void fix_index(int &i) {
+            if ( master_polygon->size() <= 0 ) { return; }
+            while ( i < 1 ) {
+                i = i + int(master_polygon->size());
+            }
+            while ( i > int(master_polygon->size()) ) {
+                i = i - master_polygon->size();
+            }
+        }
+            
+        
+        
         double
         shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,
              KERNEL::Point_2& closest_point );
          
         Segment_Visibility_Graph::vertex
         get_segment_visibility_vertex(int i, int type_i);
-         
-        
         
         KERNEL::Point_2 
         Point_2_from_poly_vertex( VisiLibity::Point& p );        

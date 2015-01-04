@@ -15,6 +15,8 @@
 #ifndef CHOICESET_H
 #define CHOICESET_H
 
+#define DEBUG_CHOICESET 5
+
 #include <vector>
 #include <utility>
 #include <list>

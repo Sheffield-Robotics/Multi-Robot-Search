@@ -35,7 +35,7 @@ compute_UAV_cost_everywhere: 0
 distance_sum_cutoff: 400
 # the saved file stores the cost in terms of grid distances
 # the new sensing range loads the file and puts in the proper sensing range
-use_new_sensing_range: 1
+use_new_sensing_range: 0
 # number of times the random samplign is applied to one line
 resample_UAV_times: 10
 only_use_best_cut_sequence: 0
@@ -51,6 +51,8 @@ motion_cost_computation: 1
 UAV_max_velocity: 1
 # in grid distances
 trajectory_discretization: 20.0
+use_poly_environment_costs: 1
+range_for_cost: 1
 ################################################################################
 # Scheduling
 ################################################################################

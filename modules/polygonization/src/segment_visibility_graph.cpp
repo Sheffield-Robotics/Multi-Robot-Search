@@ -49,6 +49,13 @@ Segment_Visibility_Graph::get_shortest_path(
     return shortest_path;
 }
 
+// TODO: remove all non-shortest edges after polygon construction
+//Segment_Visibility_Graph::edge_descriptor
+//Segment_Visibility_Graph::remove_non_shortest_edges(vertex v, vertex w)
+//{
+//    
+//}
+
 Segment_Visibility_Graph::edge_descriptor
 Segment_Visibility_Graph::get_edge_shortest(vertex v, vertex w)
 {

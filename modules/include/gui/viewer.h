@@ -91,7 +91,7 @@ class Viewer : public QGLViewer
       void drawPoly( polygonization::Polygon *poly );
       void drawVoronoiDiagram();
       void drawStrategyStep();
-      void drawSegment(lineclear::Segment s);
+      void drawSegment(lineclear::Segment s, double add_ground=0);
       void draw_sphere_at(int x, int y, double h, double size);
       void draw_line_from_to(int gx,int gy, int g2x, int g2y, double h, double h2);
       void drawText3D(double p1x,double p1y, double ground, std::string txt);
@@ -142,11 +142,13 @@ class Viewer : public QGLViewer
       std::list<int> cleared_obstacles;
       lineclear::Segment l1,l2,l3,l4; 
       std::map< std::pair<int,int>,lineclear::Segment> blocking_lines_map;
+      std::map< std::pair<int,int>,std::list<polygonization::KERNEL::Segment_2> > blocking_lines_map2;
       std::map<int,int> artifical_to_cost;
       std::vector< std::vector<NavPoint> > all_uav_poses;
       std::list<Visibility::Pos> uav_test_poses;
       std::list<polygonization::KERNEL::Segment_2> shortest_path;
       std::list<polygonization::KERNEL::Segment_2> shortest_split;
+      std::list<polygonization::KERNEL::Segment_2> split_point_list;
 
    public:
       bool showHeightMap;

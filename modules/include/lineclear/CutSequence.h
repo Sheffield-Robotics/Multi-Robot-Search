@@ -5,6 +5,8 @@
 #include <list>
 #include <iostream>
 
+#define DEBUG_CUTSEQUENCE 4
+
 class CutSequence {    
   public:
     typedef std::list<Cut>::iterator CutSequenceIterator;
@@ -33,6 +35,9 @@ class CutSequence {
     void set_right(CutSequence* cs, int b);
     void set_left(CutSequence* cs, int b);
     void set_base( int b, int mu);
+    
+    int get_base_mu();
+    int get_base_b();
 
     void add_obstacle_index( int o );
     
