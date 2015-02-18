@@ -3,6 +3,7 @@
 
 #include <QGLViewer/qglviewer.h>
 #include <QMouseEvent>
+#include <QWidget>  
 #include <vector>
 #include <string>
 #include "utilities/angles.h"
@@ -21,19 +22,33 @@
 #include "lineclear/ChoiceTree.h"
 #include "hungarian/hungarian2.h"
 #include "utilities/Yaml_Config.h"
+#include <qmessagebox.h>
+#include <qspinbox.h>
+#include <qcombobox.h>
+#include <qradiobutton.h>
+#include <qfiledialog.h>
+#include <qlineedit.h>
+#include <qpushbutton.h>
+#include <qlabel.h>
+#include <qpoint.h>
 
 
 #define DEBUG_HUNGARIAN 1
 
 extern bool redraw;
 
-using std::vector;
-
 class HeightMap;
 class MyMouseGrabber;
+namespace Ui {
+    class ViewerInterface;
+    class OptionWidget;
+}
+
 
 class Viewer : public QGLViewer
 {
+    friend class Ui::ViewerInterface;
+    friend class Ui::OptionWidget;
    public:
       Viewer(QWidget* parent=NULL, const QGLWidget* shareWidget=0, Qt::WFlags flags=0);
  
@@ -76,9 +91,10 @@ class Viewer : public QGLViewer
       void drawPoly( polygonization::Polygon *poly );
       void drawVoronoiDiagram();
       void drawStrategyStep();
-      void drawSegment(lineclear::Segment s);
-      void draw_sphere_at(int x, int y, double h );
-      void draw_line_from_to(int gx,int gy, int g2x, int g2y, double h);
+      void drawSegment(lineclear::Segment s, double add_ground=0);
+      void draw_sphere_at(int x, int y, double h, double size);
+      void draw_line_from_to(int gx,int gy, int g2x, int g2y, double h, double h2);
+      void drawText3D(double p1x,double p1y, double ground, std::string txt);
       void drawLine(double p1x,double p1y, double p2x, double p2y, double ground = 0);
       void draw_UAV_at(int x, int y);
       void compute_lineclear_strategy();
@@ -90,6 +106,10 @@ class Viewer : public QGLViewer
       void next_step();
       void setPursuerPosFromUTM(double easting, double northing);
       void triggerSetRobotPose();
+      
+      void print_help();
+      void draw_gui_text();
+      
 
       void init_pol();
       void init_env();
@@ -115,15 +135,20 @@ class Viewer : public QGLViewer
       int updated_cost;
       int visi_poly_index;
       Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it, v_end;
+      int segment_plan_to_vertex_id;
+      int segment_plan_to_vertex_id2;
       std::list<int> obstacle_sequence;
       std::list<int>::iterator obstacle_sequence_it;
       std::list<int> cleared_obstacles;
       lineclear::Segment l1,l2,l3,l4; 
       std::map< std::pair<int,int>,lineclear::Segment> blocking_lines_map;
+      std::map< std::pair<int,int>,std::list<polygonization::KERNEL::Segment_2> > blocking_lines_map2;
       std::map<int,int> artifical_to_cost;
-      vector< vector<NavPoint> > all_uav_poses;
+      std::vector< std::vector<NavPoint> > all_uav_poses;
       std::list<Visibility::Pos> uav_test_poses;
-      std::list<Segment_Visibility_Graph::vertex> shortest_path;
+      std::list<polygonization::KERNEL::Segment_2> shortest_path;
+      std::list<polygonization::KERNEL::Segment_2> shortest_split;
+      std::list<polygonization::KERNEL::Segment_2> split_point_list;
 
    public:
       bool showHeightMap;
@@ -144,6 +169,11 @@ class Viewer : public QGLViewer
       bool drawVisiGraph;
       bool drawVisiGraphVertex;
       bool triggerDumpScreenShot;
+      bool only_plot_enabled;
+      Segment_Visibility_Graph::mygraph_t::vertex_iterator 
+          only_plot_vis_seg_graph_vertex;
+      Segment_Visibility_Graph::mygraph_t::vertex_iterator 
+          only_plot_vis_seg_graph_vertex_end;
 
    protected :
       virtual void init();
@@ -162,8 +192,14 @@ class Viewer : public QGLViewer
       virtual void postSelection(const QPoint& point);
       void dumpScreenShot();
       void drawAgentSizes();
+      double get_max_height_for_draw();
       double get_max_height();
-
+      void openInterfaceWindow();
+      void closeInterfaceWindow();
+      const Viewer* qglviewer() const { 
+          const Viewer* v = this;
+          return v; };
+      
    public:
       GeoMap* _geo;
 
@@ -196,13 +232,16 @@ class Viewer : public QGLViewer
       int line_visibility_test_grid_y1;
       int line_visibility_test_grid_x2;
       int line_visibility_test_grid_y2;
+      
+      Ui::ViewerInterface* viewer_interface_;
+      Ui::OptionWidget* option_widget_;
 };
 
 
 inline void Viewer::mouseMoveEvent( QMouseEvent* const e) 
 { 
    static int oldMouseX = e->x();
-   std::cout << "Mouse at " << e->x() << ":" << e->y() << std::endl;
+   //std::cout << "Mouse at " << e->x() << ":" << e->y() << std::endl;
    if ((e->modifiers() & Qt::ShiftModifier) && (e->modifiers() & Qt::ControlModifier)) { 
       bool found = false;
       qglviewer::Vec point = camera()->pointUnderPixel(QPoint(e->x(),e->y()), found);

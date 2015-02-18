@@ -54,26 +54,53 @@ bool CutSequence::is_dominated_by( CutSequence &other ) {
     CutSequenceIterator j = other.begin();
     CutSequenceIterator j_end = other.end();
     // search for a state that is better than in other    
+    if ( DEBUG_CUTSEQUENCE >= 3 ) {
+        std::cout << " IS DOMINATED by? " << std::endl;
+    }
     
     // Note: at end, blocking cost is 0, sufficient to go through one
     // mu is strictly increasing - b is strictly decreasing
     // b has to be smaller than oldBlock to be of benefit
     while ( i != i_end && j != j_end ) {
-        //std::cout << " mu i " << i->get_mu() << std::endl;
-        //std::cout << " mu j " << j->get_mu() << std::endl;
-        //std::cout << " b i " << i->get_b() << std::endl;
-        //std::cout << " b j " << j->get_b() << std::endl;
-        
+        if ( DEBUG_CUTSEQUENCE >= 3 ) {
+            std::cout << " mu i " << i->get_mu() << std::endl;
+            std::cout << " mu j " << j->get_mu() << std::endl;
+            std::cout << " b i " << i->get_b() << std::endl;
+            std::cout << " b j " << j->get_b() << std::endl;
+        }
         if ( i->get_mu() <= j->get_mu()) {
             if ( i->get_b() <= j->get_b() ) {
-                //std::cout << " RETURNING FALSE " << std::endl;
-                return false;
+                if ( i->get_mu() == j->get_mu() 
+                    && i->get_b() == j->get_b() ) {
+                     // identical state, pick the sequence with the smaller 
+                    // base values
+                    if ( this->get_base_mu() < other.get_base_mu() ) {
+                        if ( DEBUG_CUTSEQUENCE >= 3 ) {
+                             std::cout << " RETURNING MU FALSE " << std::endl;
+                        }
+                        return false;
+                    } 
+                    if ( this->get_base_b() < other.get_base_b() ) {
+                        if ( DEBUG_CUTSEQUENCE >= 3 ) {
+                             std::cout << " RETURNING B FALSE " << std::endl;
+                        }
+                        return false;
+                    }
+                }  else { 
+                    if ( DEBUG_CUTSEQUENCE >= 3 ) {
+                         std::cout << " RETURNING PURE FALSE " << std::endl;
+                    }
+                    return false;
+                }
             }
             i++;
         } else {
             j++;
         }
     }
+     if ( DEBUG_CUTSEQUENCE >= 3 ) {
+         std::cout << " RETURNING TRUE " << std::endl;
+     }
     return true;
 }
 
@@ -87,7 +114,6 @@ bool CutSequence::is_dominated_by_weakly( CutSequence &other ) {
     // Note: at end, blocking cost is 0, sufficient to go through one
     // mu is strictly increasing - b is strictly decreasing
     // b has to be smaller than oldBlock to be of benefit
-    //std::cout << " weakly " << std::endl;
     while ( i != i_end && j != j_end ) {
         //std::cout << " mu i " << i->get_mu() << std::endl;
         //std::cout << " mu j " << j->get_mu() << std::endl;
@@ -101,6 +127,13 @@ bool CutSequence::is_dominated_by_weakly( CutSequence &other ) {
         } else if (i->get_mu() == j->get_mu()) {
             if ( i->get_b() < j->get_b()) {
                 return false;
+            } else if (  i->get_b() == j->get_b() ) {
+                if ( this->get_base_mu() < other.get_base_mu() ) {
+                    return false;
+                } 
+                if ( this->get_base_b() < other.get_base_b() ) {
+                    return false;
+                }
             }
             j++;
         } else {
@@ -165,6 +198,15 @@ void CutSequence::set_base( int b, int mu) {
     _base_b = b;
     _base_mu = mu;
 }
+
+int CutSequence::get_base_mu() {
+    return _base_mu;
+}
+
+int CutSequence::get_base_b() {
+    return _base_b;
+}
+
 
 void CutSequence::add_obstacle_index( int o) {
     _obstacle_sequence.push_back(o);

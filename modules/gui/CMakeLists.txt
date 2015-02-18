@@ -15,7 +15,12 @@ find_package(QGLViewer REQUIRED)
 include_directories(${QGLVIEWER_INCLUDE_DIR})
 find_package(Qt4 COMPONENTS QtCore QtGui QtOpenGL REQUIRED)
 include(${QT_USE_FILE})
+SET(gui_FORMS viewer_interface.ui option_widget.ui)
 QT4_WRAP_CPP(gui_HEADERS_MOC ${gui_HEADERS})
+QT4_WRAP_UI(gui_FORMS_HEADERS ${gui_FORMS})
+message(gui_FORMS_HEADERS ${gui_FORMS_HEADERS})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+
 message("CMAKE_BINARY_DIR")
 message(${CMAKE_BINARY_DIR})
 #include_directories("${CMAKE_BINARY_DIR}")
@@ -32,10 +37,9 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 find_package( JPEG )
 find_package( YAMLCPP )
 
-add_library(gui ${gui_SRC} ${gui_HEADERS} ${gui_HEADERS_MOC})
+add_library(gui ${gui_SRC} ${gui_HEADERS} ${gui_HEADERS_MOC} ${gui_FORMS_HEADERS})
 
-
-add_executable(gui_exe ${gui_SRC} ${gui_HEADERS} ${gui_HEADERS_MOC})
+add_executable(gui_exe ${gui_SRC} ${gui_HEADERS} ${gui_HEADERS_MOC} ${gui_FORMS_HEADERS})
 target_link_libraries(gui_exe 
     utilities hungarian heightmap planner polygonization 
     agents lineclear uavmodel

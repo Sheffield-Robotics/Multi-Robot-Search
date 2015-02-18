@@ -1,9 +1,11 @@
 #include "lineclear/ChoiceTree.h"
 #include "heightmap/perimeter.h"
 #include "utilities/math/bresenham.h"
+#include "utilities/Yaml_Config.h"
 
 namespace lineclear {
- 
+    using namespace Yaml_Config;
+    
 ChoiceTree::ChoiceTree(Environment* e) {
     _e = e;
     _n = _e->get_obstacle_number();
@@ -12,13 +14,18 @@ ChoiceTree::ChoiceTree(Environment* e) {
     start_step_for_split_obstacle.resize(_n+1);
 }
 
-ChoiceTree::ChoiceTree(Environment* e, Visibility* v) {
+ChoiceTree::ChoiceTree(Environment* e, Visibility* v, polygonization::Polygon_Environment* pe) {
+    _pol_env = pe;
     _e = e;
     _v = v;
     _sg = NULL;
     _n = _e->get_obstacle_number();
     _zero_choiceset = new ChoiceSet();
     start_step_for_split_obstacle.resize(_n+1);
+}
+
+ChoiceTree::ChoiceTree(Environment* e, Visibility* v) {
+    
 }
 
 void ChoiceTree::init_choice_tree() {
@@ -28,33 +35,49 @@ void ChoiceTree::init_choice_tree() {
     std::cout << " init_choice_tree with obstacles _n=" << _n << std::endl;
     _choiceSetMatrix = new ChoiceSet**[_n];
     _cost_updated = new bool**[_n];
+    double range = yaml_param["range_for_cost"].as<float>();
+    int use_poly_costs = yaml_param["use_poly_environment_costs"].as<int>();
     for (int k = 1; k < _n; ++k ) {
-        std::cout << "k=" << k << std::endl;
         _choiceSetMatrix[k] = new ChoiceSet*[_n+1];
         _cost_updated[k] = new bool*[_n+1];
         for (int i = 1; i <= _n; ++i ) {
+            std::cout << "   k=" << k << "   i=" << i << std::endl;
             _cost_updated[k][i] = new bool[k+1];
-            // NOTE @ALEX: here you see the blocking cost of the choice set
             _choiceSetMatrix[k][i] = new ChoiceSet(_n,i,k);
             int b;
             if ( Params::g_compute_UAV_cost_everywhere ) {
                 this->update_costs(i,k);
+            } else if ( use_poly_costs ) {
+                if ( _pol_env->is_necessary_block(i-1,i+k) ) {
+                    b = _pol_env->get_block_cost(i-1,i+k,range);
+                } else  {
+                    b = -1;
+                }
             } else {
                 b = _e->get_shortest_line_inside_cost(i-1,i+k);
-                _choiceSetMatrix[k][i]->set_b(b);
             }
-            
+            _choiceSetMatrix[k][i]->set_b(b);
+            M_INFO1_D(DEBUG_CHOICETREE,2,"Block cost %d \n ",b);
             if ( b == -1 ) {
                 _choiceSetMatrix[k][i]->set_all_c(-1);
             }
             else {
+                M_INFO1_D(DEBUG_CHOICETREE,2,"Computing split costs \n ");
                 for ( int j = 1; j <= k; j++ ) {
                     _cost_updated[k][i][j] = false;
                     int o = _choiceSetMatrix[k][i]->get_obstacle_for_choice(j);
                     if ( Params::g_compute_UAV_cost_everywhere ) {
                         this->update_costs(i, k, j);
-                    }
-                    else {
+                    } else if ( use_poly_costs ) {
+                        int c = -1;
+                        if ( _pol_env->is_necessary_split(i-1, i+k, o) ) {
+                            std::cout << "   k=" << k << "   i=" << i 
+                                << "  j=" << j << std::endl;
+                            c = _pol_env->get_split_cost(i-1, i+k, o, range);  
+                        }
+                        M_INFO2_D(DEBUG_CHOICETREE,3,"%d ",c);
+                        _choiceSetMatrix[k][i]->set_c_at(j,c);
+                    } else {
                         int c;
                         c = _e->get_shortest_extension_cost(i-1, i+k, o);  
                         _choiceSetMatrix[k][i]->set_c_at(j,c);
@@ -941,7 +964,7 @@ void ChoiceTree::load_from_file( std::string filename ) {
             int b;
             inStream >> b;
             M_INFO1_D(DEBUG_CT_LOAD,1,"b in pix b=%d ",b);
-            if ( Params::g_use_new_sensing_range ) {
+            if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() ) {
                 if ( b != 0 && b != -1 )
                     b = ceil ( b / new_sensing_diameter );
             }
@@ -951,7 +974,7 @@ void ChoiceTree::load_from_file( std::string filename ) {
                 _cost_updated[k][i][j] = false;
                 int c;
                 inStream >> c;
-                if ( Params::g_use_new_sensing_range ) {
+                if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() ) {
                     if ( c != 0 && c != -1 )
                         c = ceil ( c / new_sensing_diameter );
                 }
@@ -1022,12 +1045,18 @@ double ChoiceTree::average_n_cutsequences(int&proper_average) {
 
 
 void ChoiceTree::print_set( int i, int k) {
+    if ( DEBUG_CHOICETREE >= 5 ) {
+        std::cout << " Printing set " << i << " : " << k << std::endl;
+    }
     ChoiceSet *cs = this->get_choice_set_at(i,k);
     CutSequence* cut_seq = cs->get_best_cut_sequence();
     if ( cut_seq == NULL ) 
         return;
     if ( DEBUG_CHOICETREE >= 5 ) {
         cut_seq->print();
+    }
+    if ( DEBUG_CHOICETREE >= 5 ) {
+        std::cout << " Getting final cost " << i << " : " << k << std::endl;
     }
     int c = cut_seq->get_final_cost();
     M_INFO1_D(DEBUG_CHOICETREE,4," best cost %d \n",c);
@@ -1085,29 +1114,18 @@ void ChoiceTree::process_set( int i, int k) {
                     cs,j, cs_l->get_b(), cs_r->get_b(), 
                     cut_seq_l, cut_seq_r );
                 
-                // collect only the best cut sequence
                 int cut_seq_c = new_cs->get_final_cost();
                 if ( DEBUG_CHOICETREE >= 3 ) {
                     std::cout << " new cut seq cost " << cut_seq_c << std::endl;
                 }
-                //if ( cut_seq_c < min_mu || min_mu == -1 ) {
-                //    if ( best_cs != NULL ) { delete best_cs;}
-                //    best_cs = new_cs;
-                //    best_j = j;
-                //    min_mu = cut_seq_c;
-                //} else {
-                //    delete new_cs;
-                //}
-                if (cut_seq_c != 0 ) {
-                    if ( ! cs->is_dominated_weakly( *new_cs )) {
-                        cs->add_cut_sequence( *new_cs, j );
-                        //new_cs->print();
-                    }
+                if ( cut_seq_c != 0 && ! cs->is_dominated_weakly( *new_cs )) {
+                    cs->add_cut_sequence( *new_cs, j );
                 }
             }
         }
         if ( DEBUG_CHOICETREE >= 1 ) {
-            std::cout << " added " << cs->cut_sequences_size() << " cut sequences" << std::endl;
+            std::cout << " have " << cs->cut_sequences_size() 
+                << " cut sequences" << std::endl;
         }
         if ( DEBUG_CHOICETREE >= 2 ) {
             std::cout << " ********__________ DONE choice " << j << std::endl;
@@ -1325,7 +1343,7 @@ bool ChoiceTree::assert_indices(int i, int k) {
 ChoiceSet* ChoiceTree::get_optimal_choice_set(int &best_start) {
     std::cout << " get_optimal_choice_set " << std::endl;
     ChoiceSet* choice_set;
-    ChoiceSet* best_choice_set;
+    ChoiceSet* best_choice_set = NULL;
     CutSequence* cut_seq;
     CutSequence* best_cut_seq;
     int min_cost = -1,c;
@@ -1347,8 +1365,13 @@ ChoiceSet* ChoiceTree::get_optimal_choice_set(int &best_start) {
                 best_start = _n;
             min_cost = c;
             best_cut_seq = cut_seq;
+            M_INFO1_D(DEBUG_CHOICETREE,2," best choice set i=%d \n",i);
             best_choice_set = choice_set;
         }
+    }
+    if ( best_choice_set == NULL ) 
+    {
+        M_INFO1_D(DEBUG_CHOICETREE,1," ERROR null best choice set\n");
     }
     
     if ( DEBUG_CHOICETREE >= 4 ) {
@@ -1357,11 +1380,10 @@ ChoiceSet* ChoiceTree::get_optimal_choice_set(int &best_start) {
         for (int k = 1; k < _n; ++k ) {
             for (int i = 1; i <= _n; ++i ) {
                 this->print_set(i,k);            
-            }
+            }   
         }
-        
+        std::cout << "DONE WITH all sets " << std::endl;   
     }
-    
     return best_choice_set;
 }
 

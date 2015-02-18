@@ -8,19 +8,27 @@
 #include <map>
 #include <vector>
 #include "utilities/filesysTools.h"
+#include "ui_viewer_interface.h"
+#include "ui_option_widget.h"
 
 using namespace std;
 
 
 using std::map;
+using namespace qglviewer;
+using namespace Ui;
+using namespace Yaml_Config;
 
 extern bool quit_signal;
 extern bool redraw;
 extern bool recreate;
 extern string confFile;
 
+
 Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) : QGLViewer(parent, shareWidget, flags)
 {
+    viewer_interface_ = NULL;
+    option_widget_ = NULL;
     _map = NULL;
     _vis = NULL;
     _anim = NULL;
@@ -28,6 +36,7 @@ Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) 
     _pol = NULL;
     _env = NULL;
     _ct = NULL;
+    only_plot_enabled = false;
     current_cost = 0;
     max_cost = 0;
     artifical_cost = 0;
@@ -44,6 +53,7 @@ Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) 
     drawWireFrame = false;
     drawVisiPoli = false;
     drawVisiGraphVertex = false;
+    drawVisiGraph = false;
     drawStrategyStepFlag = false;
     drawFrequinPosesFlag = false;
     drawSweepStateFlag = false;
@@ -123,6 +133,24 @@ void Viewer::init()
     resize(1024,768);
 }
 
+void Viewer::closeInterfaceWindow()
+{
+    if (viewer_interface_)
+    {
+        delete viewer_interface_;
+        viewer_interface_ = NULL;
+    }
+}
+
+void Viewer::openInterfaceWindow()
+{
+    M_INFO3("Opening interface ");
+    viewer_interface_ = new ViewerInterface();
+    QDialog *central=new QDialog(this);
+    viewer_interface_->setupUi(central);
+    central->exec();
+
+}
 
 void Viewer::draw()
 {
@@ -246,7 +274,8 @@ void Viewer::draw()
         glColor3f(0, 0, 1.0);
         drawPlan(_map,testPlan, 1.0);
     }
-
+    
+    this->draw_gui_text();
 
     redraw = false;
     //printf(".");
@@ -275,45 +304,33 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         drawWireFrame = !drawWireFrame;
         setDrawWireFrame(drawWireFrame);
         break;
-    case Qt::Key_Y :
-        Params::readConfFile(confFile.c_str());
-        M_INFO3("RELOADED CONFIGURATION FILE!\n");
-        displayMessage("RELOADED CONFIGURATION FILE");
+    case Qt::Key_E :
+        init_pol();
         break;
-    case Qt::Key_G :
-        drawGraph = !drawGraph;
+    case Qt::Key_R:
+       {
+
+       }
+       break;
+    case Qt::Key_T:        
+       
+       break;
+    case Qt::Key_Y :
+        break;
+    case Qt::Key_U:
+        M_INFO3("Toggle option: drawing Voronoi Diagram \n");
+        drawVoronoiDiagramFlag = !drawVoronoiDiagramFlag;
         redraw=true;
         break;
-    case Qt::Key_L :
-        _map->classifyMap();
-        classifiedMap = true;
+    case Qt::Key_I:
         break;
-      case Qt::Key_R:
-         {
-            if (!classifiedMap) {
-               _map->classifyMap();
-               classifiedMap = true;
-            }
-            // Compute map 
-            bool graphCreated = _vis->computeRegionSet(_lastMapPureFileName, 
-                  Params::g_num_spanning_trees, Params::g_bias_spanning_trees);
-
-            if (graphCreated) 
-               _anim->init("",false);
-            else {
-               // Reload schedule in animator
-               if (!Params::g_use_compressed_strategy) {
-                  string tt = _lastMapPureFileName + ".sch";
-                  _anim->init(tt, true);
-               }
-               else {
-                  string tt2 = _lastMapPureFileName + ".cst";
-                  _anim->init(tt2, true);
-               }
-            }
-            setDrawHeightmapRegions(true);
-         }
-         break;
+    case Qt::Key_O :
+        break;
+    case Qt::Key_P:
+        M_INFO3("Compute line-clear strategy on master polygon \n");
+        this->compute_lineclear_strategy();
+        break;
+        
     case Qt::Key_A:
         if ( _ct != NULL ) {
             updated_cost = _ct->update_costs();
@@ -328,110 +345,86 @@ void Viewer::keyPressEvent(QKeyEvent *e)
             drawSweepStateFlag = true;
         }
         break;
-    case Qt::Key_T:        
-        init_pol();
+    case Qt::Key_S :
+        triggerDumpScreenShot=true;
+        updateGL();
+        break;
+    case Qt::Key_D:
+        M_INFO3("Next step in strategy \n");
+        drawStrategyStepFlag = true;
+        redraw=true;
+        this->next_step();
         break;
     case Qt::Key_F:
         M_INFO3("Toggle option: drawing polygon environment into gui \n");
         drawPolygonEnvironmentFlag = !drawPolygonEnvironmentFlag;
         redraw=true;
         break;
+    case Qt::Key_G :
+        this->toggle_visi_graph();
+        //drawGraph = !drawGraph;
+        //redraw=true;
+        break;
+    case Qt::Key_H :
+        this->openInterfaceWindow();
+        this->print_help();
+        break;
     case Qt::Key_J:
         M_INFO3("Toggle option: drawing raw polygon environment into gui \n");
         drawPolygonRawEnvironmentFlag = !drawPolygonRawEnvironmentFlag;
         redraw=true;
         break;
+    case Qt::Key_K:
+        if (_vis->saveGraph(string("/tmp/graph.dot")))
+            M_INFO3("Saved graph under %s\n","/tmp/graph.dot");
+        break;
+    case Qt::Key_L :
+        break;
+    
     case Qt::Key_Z:
         this->load_choice_tree();
-        break;
-    case Qt::Key_U:
-        M_INFO3("Toggle option: drawing Voronoi Diagram \n");
-        drawVoronoiDiagramFlag = !drawVoronoiDiagramFlag;
-        redraw=true;
-        break;
-    case Qt::Key_I:
-        M_INFO3("Toggle option: drawVisiGraphVertex \n");
-        if ( drawVisiGraphVertex == false) {
-            drawVisiGraphVertex = true;
-            tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
-            redraw = true;
-        } else {
-            this->toggle_visi_graph_vertex();
-        }
-        break;
-    case Qt::Key_D:
-        M_INFO3("Compute line-clear strategy on master polygon \n");
-        this->compute_lineclear_strategy();
-        break;
-    case Qt::Key_C:
-        M_INFO3("Next step in strategy \n");
-        drawStrategyStepFlag = true;
-        redraw=true;
-        this->next_step();
         break;
     case Qt::Key_X:
         M_INFO3("Loading strategy \n");
         this->load_strategy();
         break;
-    case Qt::Key_K:
-        if (_vis->saveGraph(string("/tmp/graph.dot")))
-            M_INFO3("Saved graph under %s\n","/tmp/graph.dot");
+    case Qt::Key_C:
+        //toggle_draw_up_to();
+        //toggle_sweep_state();
+        //toggle_current_step();
+        //test_visibility_line_cost();
         break;
-	case Qt::Key_P:
-			if (!classifiedMap) {
-       			_map->classifyMap();
-       			classifiedMap = true;
-    		}
-			_per->computePerimeterSchedule();
-			setDrawHeightmapRegions(true);    
-			displayMessage("Perimeter Computation Done!");	                
-		break;
-    case Qt::Key_S :
-        triggerDumpScreenShot=true;
-        updateGL();
+    case Qt::Key_V :
+        if ( only_plot_enabled == false ) {
+                only_plot_enabled = true;
+                tie(only_plot_vis_seg_graph_vertex, 
+                      only_plot_vis_seg_graph_vertex_end) 
+                    = boost::vertices(*(_pol->seg_vis_graph->g));
+        } else {
+            only_plot_vis_seg_graph_vertex++;
+            if ( only_plot_vis_seg_graph_vertex 
+                 == only_plot_vis_seg_graph_vertex_end ) 
+            {
+                only_plot_enabled = false;
+            }
+        }
+        redraw = true;
+        break;
+    case Qt::Key_B :
+        if (_pol == NULL || _pol->seg_vis_graph == NULL || _pol->seg_vis_graph->g == NULL )
+            return;
+        if ( drawVisiGraphVertex == false) {
+            drawVisiGraphVertex = true;
+            tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
+        } else {
+            this->toggle_visi_graph_vertex();
+        }
         break;
     case Qt::Key_N :
         this->toggle_visi_poly(true);
-        //if (!classifiedMap) {
-        //    _map->classifyMap();
-        //    classifiedMap = true;
-        //}
-        //_anim->update();
-        //setDrawVisibility(true);
-        //updateGL();
         break;
-    case Qt::Key_E :
-    {
-        if (!classifiedMap) {
-            _map->classifyMap();
-            classifiedMap = true;
-        }
-        if (!Params::g_use_compressed_strategy) {
-            string tt = _lastMapPureFileName + ".sch";
-            _anim->init(tt, true);
-        }
-        else {
-            string tt2 = _lastMapPureFileName + ".cst";
-            _anim->init(tt2, true);
-        }
-        string tt3 = _lastMapPureFileName + ".exec";
-        _anim->setGeoMapPointer(_geo);
-        for (int i=0; i<_anim->getMaxSteps(); i++)
-            _anim->update(tt3);
-        M_INFO3("Saved exec file under %s\n",tt3.c_str());
-    }
-        break;
-    case Qt::Key_V :
-    {
-        Timing t("Visibility");
-        Visibility::VisSet vset;
-        int c = _vis->computeVisibilitySet(pursuerX, pursuerY, vset);
-        _vis->setVisiblilityMarkings(vset, true);
-        M_INFO3("Visibility size: %d\n",c);
-        t.printInfo(true);
-        setDrawVisibility(true);
-        updateGL();
-    }
+    case Qt::Key_M :
+        this->toggle_visi_poly();
         break;
     case Qt::Key_Minus :
     {
@@ -484,53 +477,6 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         drawAllTrajectoriesLinesFlag = !drawAllTrajectoriesLinesFlag;
         break;
     case Qt::Key_9 :
-        this->toggle_visi_graph();
-        break;
-    case Qt::Key_M :
-        //toggle_draw_up_to();
-        //toggle_sweep_state();
-        //toggle_current_step();
-        //test_visibility_line_cost();
-        this->toggle_visi_poly();
-        break;
-    case Qt::Key_O :
-        this->apply_hungarian();
-        break;
-    case Qt::Key_H :
-        M_INFO1("Simple Help:\n");
-        M_INFO1("- W - Toggle draw wire frame\n");
-        M_INFO1("- S - Dummp screen shot (automatically numbered)\n");
-        M_INFO1("- R - Compute RegionSet\n");
-        M_INFO1("- K - Save graph from RegionSet\n");
-        M_INFO1("- M - Increment current time step by 1 - go trough pose list\n");
-        M_INFO1("- A - Build pose list from strategy\n");
-        M_INFO1("- Z - Load choice tree\n");
-        M_INFO1("- C - Play through strategy with lines\n");
-        M_INFO1("- E - Save exec file (for real world experiments)\n");
-        M_INFO1("- G - Draw Graph\n");
-        M_INFO1("- N - Proceed animation of schedule\n");
-        M_INFO1("- V - Compute visibility for current location\n");
-        M_INFO1("- Y - Reload configuration file.\n");
-        M_INFO1("- A - Compute abstraction\n");
-        M_INFO1("- L - Classify the map\n");
-        M_INFO1("- T - Build polygonization and simply-connected master polygon\n");
-        M_INFO1("- J - Draw polygonization\n");
-        M_INFO1("- F - Draw master polygon\n");
-        M_INFO1("- D - Compute line-clear strategy (builds choice tree if you do not have one already) \n");
-        M_INFO1("- X - Loads a computed strategy \n");
-        M_INFO1("- Z - Load choice tree (then compute strategy with D) \n");
-        M_INFO1("- U - Draw Voronoi Diagram \n");
-        M_INFO1("- 1 - Draw plain map\n");
-        M_INFO1("- 2 - Draw classified map\n");
-        M_INFO1("- 3 - Draw variances in map\n");
-        M_INFO1("- 4 - Draw visibility\n");
-        M_INFO1("- 5 - Draw geotiff height map image\n");
-        M_INFO1("- 6 - Draw geotiff color image\n");
-        M_INFO1("- 7 - Draw drawAllTrajectoriesFlag - M increments pose list\n");
-        M_INFO1("- + - Zoom IN\n");
-        M_INFO1("- - - Zoom OUT\n");
-        M_INFO1("- Cursor - Move left, right, up, down\n");
-        M_INFO1("- q - Quit\n");
         break;
     default:
         QGLViewer::keyPressEvent(e);
@@ -538,10 +484,46 @@ void Viewer::keyPressEvent(QKeyEvent *e)
     }
 }
 
+void Viewer::print_help() {
+    M_INFO1("Simple Help:\n");
+    M_INFO1("- W - Toggle draw wire frame\n");
+    M_INFO1("- S - Dummp screen shot (automatically numbered)\n");
+    M_INFO1("- R - Compute RegionSet\n");
+    M_INFO1("- K - Save graph from RegionSet\n");
+    M_INFO1("- M - Increment current time step by 1 - go trough pose list\n");
+    M_INFO1("- A - Build pose list from strategy\n");
+    M_INFO1("- Z - Load choice tree\n");
+    M_INFO1("- C - Play through strategy with lines\n");
+    M_INFO1("- E - Save exec file (for real world experiments)\n");
+    M_INFO1("- G - Draw Graph\n");
+    M_INFO1("- N - Proceed animation of schedule\n");
+    M_INFO1("- V - Compute visibility for current location\n");
+    M_INFO1("- Y - Reload configuration file.\n");
+    M_INFO1("- A - Compute abstraction\n");
+    M_INFO1("- L - Classify the map\n");
+    M_INFO1("- T - Build polygonization and simply-connected master polygon\n");
+    M_INFO1("- J - Draw polygonization\n");
+    M_INFO1("- F - Draw master polygon\n");
+    M_INFO1("- D - Compute line-clear strategy (builds choice tree if you do not have one already) \n");
+    M_INFO1("- X - Loads a computed strategy \n");
+    M_INFO1("- Z - Load choice tree (then compute strategy with D) \n");
+    M_INFO1("- U - Draw Voronoi Diagram \n");
+    M_INFO1("- 1 - Draw plain map\n");
+    M_INFO1("- 2 - Draw classified map\n");
+    M_INFO1("- 3 - Draw variances in map\n");
+    M_INFO1("- 4 - Draw visibility\n");
+    M_INFO1("- 5 - Draw geotiff height map image\n");
+    M_INFO1("- 6 - Draw geotiff color image\n");
+    M_INFO1("- 7 - Draw drawAllTrajectoriesFlag - M increments pose list\n");
+    M_INFO1("- + - Zoom IN\n");
+    M_INFO1("- - - Zoom OUT\n");
+    M_INFO1("- Cursor - Move left, right, up, down\n");
+    M_INFO1("- q - Quit\n");
+}
 void Viewer::load_choice_tree() {
     if ( _ct == NULL ) {
         init_env();
-        _ct = new lineclear::ChoiceTree( _env, _vis);
+        _ct = new lineclear::ChoiceTree( _env, _vis,_pol);
         string fname = _lastMapPureFileName + ".ct";
         M_INFO1("Loading choice tree from file %s \n",fname.c_str());
         _ct->load_from_file(fname);
@@ -579,7 +561,7 @@ void Viewer::compute_lineclear_strategy() {
         init_env();
         M_INFO1("Using %s.ct as file\n",_lastMapPureFileName.c_str());
         M_INFO1("Creating and initializing first choice tree\n");
-        _ct = new lineclear::ChoiceTree( _env, _vis );
+        _ct = new lineclear::ChoiceTree( _env, _vis, _pol );
         M_INFO1("Initializing choice tree (takes a long time)\n");
         _ct->init_choice_tree();
         save_choice_tree();
@@ -707,7 +689,7 @@ void Viewer::next_step() {
                 std::cout << " adding cost " << std::endl;
                 double d = sqrt(CGAL::to_double(o_seg.squared_length()));
                 int art_cost = ceil ( d );
-                if ( Params::g_use_new_sensing_range ) {
+                if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() ) {
                     art_cost = ceil ( d / (2*_vis->get_max_steps()) );
                 }
                 artifical_to_cost[a] = art_cost;
@@ -751,12 +733,33 @@ void Viewer::next_step() {
         std::cout << " extending left= " << left_obstacle
             << " and right=" << right_obstacle << " onto "
             << new_obstacle << std::endl;
-        int ext_cost = _env->get_shortest_extension(left_obstacle,
-            right_obstacle, new_obstacle,l1,l2);
+        int ext_cost;
+        if ( yaml_param["use_poly_environment_costs"].as<int>() ) {
+            double cost1, cost2;
+            int split_point_index;
+            //std::list<polygonization::KERNEL::Segment_2> split_point_list; 
+            int p_i = left_obstacle,p_j = right_obstacle,p_k = new_obstacle;
+            _pol->fix_index(p_i); _pol->fix_index(p_j);_pol->fix_index(p_k);
+            p_i--;p_j--;p_k--;
+            split_point_list = _pol->shortest_split_costs(p_i,p_j,p_k, 
+                cost1, cost2, split_point_index);
+            ext_cost = int(ceil(cost1)) + int(ceil(cost2));
+            l1 = split_point_list.front();
+            std::list<polygonization::KERNEL::Segment_2>::iterator it, it_end;
+            it = split_point_list.begin();
+            it_end = split_point_list.end();
+            for ( int i = 0; i <= split_point_index && it != it_end; i++ ) {
+                l2 = *it;
+            }
+        } else {
+            ext_cost = _env->get_shortest_extension(left_obstacle,
+                        right_obstacle, new_obstacle,l1,l2);
+        }
         
-        if ( Params::g_use_new_sensing_range )
+        if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() )
             ext_cost = ceil ( ext_cost / (2*_vis->get_max_steps()) );
-        
+
+        M_INFO2("_vis->get_max_steps() - range %d", _vis->get_max_steps());
         
         M_INFO2("Extension costs %d", ext_cost);
         //What's the choice set we are extending?
@@ -796,10 +799,17 @@ void Viewer::next_step() {
         std::cout << " removing old block " << std::endl;
         std::pair<int,int> b_p(left_obstacle, right_obstacle);
         blocking_lines_map.erase(b_p);
-        int b_removed = _env->get_shortest_line_inside_cost(
-            left_obstacle, right_obstacle);
+        blocking_lines_map2.erase(b_p);
+        int b_removed;
+        if ( yaml_param["use_poly_environment_costs"].as<int>() ) {
+            b_removed = _pol->get_block_cost(left_obstacle, right_obstacle);
+        } else {
+            b_removed = _env->get_shortest_line_inside_cost(
+                left_obstacle, right_obstacle);
+        }
+         
         if ( b_removed != -1 ) {
-            if ( Params::g_use_new_sensing_range )
+            if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() )
                 b_removed = ceil ( b_removed / (2*_vis->get_max_steps()) );
             current_blocking_cost -= b_removed ;
         }
@@ -808,20 +818,47 @@ void Viewer::next_step() {
         if ( max_cost < current_cost ) {
             max_cost = current_cost;
         }
+        std::cout << " MAXC= " << max_cost << std::endl;
         std::cout << " COST= " << current_cost << std::endl;
-        std::cout << " MAX COST= " << max_cost << std::endl;
-        std::cout << " ext_cost= " << ext_cost << std::endl;
-        std::cout << " current_blocking_cost= " << current_blocking_cost << std::endl;
-        std::cout << " artifical_cost= " << artifical_cost << std::endl;
-        std::cout << " just removed block= " << b_removed << std::endl;
         
+        std::cout << " SPLIT= " << ext_cost << std::endl;
+        std::cout << " BLOC= " << current_blocking_cost << std::endl;
+        std::cout << " artif= " << artifical_cost << std::endl;
+        std::cout << " -BLO= " << b_removed << std::endl;
         
-        l3 = _env->get_shortest_line_inside(new_obstacle,right_obstacle);
-        if ( l3.target() != l3.source() ) {
+        //right and new obstacle new block
+        std::list<polygonization::KERNEL::Segment_2> block_point_list;
+        double right_block_distance;
+        if ( yaml_param["use_poly_environment_costs"].as<int>() ) {
+            int p_i = new_obstacle, p_j = right_obstacle;
+            _pol->fix_index(p_i); _pol->fix_index(p_j);
+            p_i--; p_j--;
+            block_point_list = _pol->get_shortest_path(p_i,p_j,right_block_distance);
+            l3 = block_point_list.front();
+            std::list<polygonization::KERNEL::Segment_2>::iterator list_it;
+            
+            for ( list_it = block_point_list.begin(); list_it != block_point_list.end(); list_it++ )
+            {
+                std::cout << *list_it << " - ";
+            }
+            std::cout << std::endl;
+        } else {
+            l3 = _env->get_shortest_line_inside(new_obstacle,right_obstacle);
+        }
+        if ( l3.target() != l3.source() 
+                || (yaml_param["use_poly_environment_costs"].as<int>() 
+                    && right_block_distance > 0 ) ) {
             std::pair<int,int> block_between(new_obstacle,right_obstacle);
             blocking_lines_map[block_between] = l3;
-            int b_right = _env->get_line_cost(l3);
-            if ( Params::g_use_new_sensing_range )
+            blocking_lines_map2[block_between] = block_point_list;
+            int b_right;
+            if ( yaml_param["use_poly_environment_costs"].as<int>()  )  {
+                b_right = ceil( right_block_distance );
+            } else {
+                b_right = _env->get_line_cost(l3);
+            }
+            
+            if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() )
                 b_right = ceil ( b_right / (2*_vis->get_max_steps()) );
             
             if ( b_right > 0 ) {
@@ -829,21 +866,41 @@ void Viewer::next_step() {
             }
             std::cout << " right_obstacle new block= " << b_right << std::endl;
         }
-        l4 = _env->get_shortest_line_inside(left_obstacle,new_obstacle);
-        if ( l4.target() != l4.source() ) {
+        
+        //left and new obstalce new block
+        std::list<polygonization::KERNEL::Segment_2> block_point_list2;
+        double left_block_distance;
+        if ( yaml_param["use_poly_environment_costs"].as<int>() ) {
+            int p_i = left_obstacle, p_j = new_obstacle;
+            _pol->fix_index(p_i); _pol->fix_index(p_j);
+            p_i--; p_j--;
+            block_point_list2 = _pol->get_shortest_path(p_i,p_j,
+                left_block_distance);
+            l4 = block_point_list2.front();
+        } else {
+            l4 = _env->get_shortest_line_inside(left_obstacle,new_obstacle);
+        }
+        if ( l4.target() != l4.source() || (yaml_param["use_poly_environment_costs"].as<int>() 
+                    && left_block_distance > 0 )) {
             std::pair<int,int> block_between(left_obstacle, 
                 new_obstacle);
-            int b_left = _env->get_line_cost(l4);
-            if ( Params::g_use_new_sensing_range )
+            int b_left; 
+            if ( yaml_param["use_poly_environment_costs"].as<int>()  ) {
+                b_left = ceil( left_block_distance );
+            } else {
+                b_left = _env->get_line_cost(l4);
+            }
+            if ( Yaml_Config::yaml_param["use_new_sensing_range"].as<int>() )
                 b_left = ceil ( b_left / (2*_vis->get_max_steps()) );
             
             blocking_lines_map[block_between] = l4;
+            blocking_lines_map2[block_between] = block_point_list2;
             if ( b_left > 0 ) {
                 current_blocking_cost += b_left;
             }
             std::cout << " left_obstacle new block= " << b_left << std::endl;
         }
-        std::cout << " new blocking = " << current_blocking_cost << std::endl;
+        std::cout << " BLOCK = " << current_blocking_cost << std::endl;
     } else {
         // we do not yet have enough obstacle indices to draw any lines
     }
@@ -907,8 +964,7 @@ bool Viewer::loadHeightmapFromTIFF(const string &filename)
     string fname_yaml = _lastMapPureFileName + ".yaml";
     Yaml_Config::load_yaml_file_into_param(fname_yaml.c_str());
     M_INFO1("Re-loading configuration file .ini for map");
-    //M_INFO1("Loaded yaml_param %f",Yaml_Config::yaml_param["max_ramp_angle"].as<float>());
-
+    M_INFO1("Loaded yaml_param %f",Yaml_Config::yaml_param["max_ramp_angle"].as<float>());
         
     int w = _geo->width();
     int h = _geo->height();
@@ -951,6 +1007,10 @@ bool Viewer::loadHeightmapFromTIFF(const string &filename)
     return true;
 }
 
+double Viewer::get_max_height_for_draw() 
+{
+    return this->get_max_height() / 1000 ;
+}
 double Viewer::get_max_height() 
 {
     if ( max_height == 0 ) {
@@ -1208,7 +1268,8 @@ void Viewer::toggle_visi_poly(bool backwards) {
         visi_poly_index--;
     else
         visi_poly_index++;
-    if ( visi_poly_index == -1 ) {
+    if ( visi_poly_index <= -1 ) {
+        visi_poly_index = -1;
         drawVisiPoli = false;
     }
     if ( visi_poly_index == int( _pol->visi_polies.size() ) ) {
@@ -1225,20 +1286,55 @@ void Viewer::toggle_visi_graph() {
 
 void Viewer::toggle_visi_graph_vertex()
 {
+    M_INFO3("Toggle option: drawVisiGraphVertex\n");
+    if ( _pol == NULL || _pol->seg_vis_graph == NULL )
+        return;
+    Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
+    if ( g == NULL ) 
+        return;
+    
     v_it++;
+    while ( (*g)[*v_it].type == 2 && v_it != v_end ) {
+        v_it++;
+    }
     if ( v_it == v_end ) {
         tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
     }
     
     Segment_Visibility_Graph::vertex v,w;
     v = *v_it;
-    int vertex_id = rand() % _pol->seg_vis_graph_type1_vertices.size();
-    Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
-    M_INFO3(" Going from vertex %d to vertex %d\n",(*g)[v].segment_index,vertex_id);
-    w = _pol->get_segment_visibility_vertex( vertex_id, 1 );
-    shortest_path = _pol->seg_vis_graph->get_shortest_path(v,w);
-    
+    segment_plan_to_vertex_id = (*g)[v].segment_index;
+    int tries = 100;
+    while ( abs(segment_plan_to_vertex_id - (*g)[v].segment_index) < 2
+        && tries > 0 ) {
+        segment_plan_to_vertex_id = rand() 
+            % _pol->seg_vis_graph_type1_vertices.size();
+        tries--;
+    }
+    tries = 100;
+    segment_plan_to_vertex_id2 = (*g)[v].segment_index;
+    while ( 
+        ( abs(segment_plan_to_vertex_id2 - (*g)[v].segment_index) < 2 || 
+            abs(segment_plan_to_vertex_id2 - segment_plan_to_vertex_id) < 2 )
+            && tries  > 0 ) {
+        segment_plan_to_vertex_id2 = rand() 
+            % _pol->seg_vis_graph_type1_vertices.size();
+        tries--;
+    }
+    M_INFO3(" Going from vertex %d to vertex %d splitting on %d\n", 
+        (*g)[v].segment_index, segment_plan_to_vertex_id,segment_plan_to_vertex_id2);
+    w = _pol->get_segment_visibility_vertex( segment_plan_to_vertex_id, 1 );
+    double dum;
+    shortest_path = 
+    _pol->get_shortest_path((*g)[v].segment_index,segment_plan_to_vertex_id,dum);
     redraw = true;
+    
+    double shortest_split_c = 0;
+    
+    shortest_split = _pol->shortest_split_cost(
+        (*g)[v].segment_index, 
+        segment_plan_to_vertex_id, 
+        segment_plan_to_vertex_id2, shortest_split_c);
 }
 
 void Viewer::drawFrequinPoses() {
@@ -1421,27 +1517,31 @@ void Viewer::drawAllTrajectoriesLines() {
     }
 }
 
-void Viewer::draw_sphere_at(int x, int y, double h ) {
+void Viewer::draw_sphere_at(int x, int y, double h, double size = 0.3 ) {
     if ( !_map->pointInMap(x,y) )
         return;
     double wx,wy; _map->grid2world(wx,wy,x,y);
     double height = _map->getCellsMM()[x][y].getHeight()/ 1000.0;
-    glColor3f(0.0, 0.0, 1.0);
-    glLineWidth(3.0);
-    drawSphere(0.3,wx,wy,height + h);
+    //glColor3f(0.0, 0.0, 1.0);
+    //glLineWidth(3.0);
+    drawSphere(size,wx,wy,height + h);
 }
 
-void Viewer::draw_line_from_to(int gx,int gy, int g2x, int g2y, double h)
+void Viewer::draw_line_from_to(int gx,int gy, int g2x, int g2y, double h, double h2 = 0)
 {
     double wx, wy, w2x,w2y;
     _map->grid2world(wx,wy,gx,gy);
     _map->grid2world(w2x,w2y,g2x,g2y);
-    //double height = max(
-    //    _map->getCellsMM()[gx][gy].getHeight() / 1000.0,
-    //    _map->getCellsMM()[g2x][g2y].getHeight() / 1000.0);
+    double height = max(
+        _map->getCellsMM()[gx][gy].getHeight() / 1000.0,
+        _map->getCellsMM()[g2x][g2y].getHeight() / 1000.0);
+    if ( h == 0 )
+        h = height;
+    if ( h2 == 0 ) 
+        h2 = h;
     glBegin(GL_LINES);
      glVertex3f(wx,wy, h);
-     glVertex3f(w2x,w2y,  h);
+     glVertex3f(w2x,w2y,  h2);
     glEnd();
 }
 
@@ -1807,22 +1907,11 @@ void Viewer::drawPolygonEnvironment() {
     if ( _pol == NULL ) {
         M_INFO3("No Polygon Environment there to draw \n");
         return;
-    }
-    
-    //glLineWidth(2.0);
-    //glColor3f(0.5, 0.0, 0.0);
-    //for ( unsigned int i = 0; i < _pol->size(); i++ ) {
-    //    // polygons are of type polygonization polygon
-    //    M_INFO3("Drawing poly %d \n",i+1);
-    //    polygonization::Polygon* poly = &((*_pol)[i]);
-    //    this->drawPoly( poly );
-    //}
+    }    
     glEnable(GL_LIGHTING);
     glColor3f(1.0, 1.0, 0.0);
     if ( _pol->master_polygon != NULL ) 
         this->drawPoly( _pol->master_polygon );
-    
-    //glEnable(GL_LIGHTING);
 }
 
 void Viewer::drawPolygonRawEnvironment() {
@@ -1830,12 +1919,9 @@ void Viewer::drawPolygonRawEnvironment() {
         M_INFO3("No Polygon Environment there to draw \n");
         return;
     }
-    
-    //glEnable(GL_LIGHTING);
     glLineWidth(1.0);
     glColor3f(0.3, 1.0, 0.0);
     for ( unsigned int i = 0; i < _pol->size(); i++ ) {
-        //M_INFO3("Drawing poly %d \n",i+1);
         polygonization::Polygon* poly = &((*_pol)[i]);
         this->drawPoly( poly );
     }
@@ -1846,7 +1932,6 @@ void Viewer::drawPoly( polygonization::Polygon *poly ) {
     double height = this->get_max_height() / 1000.0;
     for ( unsigned int j = 0; j < poly->size(); j++ ) {
         polygonization::Segment s = poly->edge(j);
-        
         std::list<int>::iterator it;
         it = std::find(cleared_obstacles.begin(),cleared_obstacles.end(),j+1);
         if ( it == cleared_obstacles.end() ) {
@@ -1854,7 +1939,6 @@ void Viewer::drawPoly( polygonization::Polygon *poly ) {
         } else {
             glColor3f(0.0, 1.0, 0.0);
         }
-        
         double wx,wy,w2x,w2y;
         int gx = ceil( CGAL::to_double(s.source().x())); 
         int gy = ceil( CGAL::to_double(s.source().y()));
@@ -1862,7 +1946,7 @@ void Viewer::drawPoly( polygonization::Polygon *poly ) {
         int g2y = ceil(CGAL::to_double(s.target().y()));
         _map->grid2world(wx,wy,gx,gy);
         _map->grid2world(w2x,w2y,g2x,g2y);
-        drawSphere(0.3,wx,wy,height);
+        drawSphere(0.1,wx,wy,height);
         glBegin(GL_LINES);
          glVertex3f(wx,wy, height);
          glVertex3f(w2x,w2y, height);
@@ -1872,99 +1956,209 @@ void Viewer::drawPoly( polygonization::Polygon *poly ) {
 
 void Viewer::drawVisibilityGraph()
 {
-    //
-    //(*(_env->seg_vis_graph->g))::
+    Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
+    
     boost::graph_traits<Segment_Visibility_Graph::mygraph_t>::vertex_iterator 
         vi, vi_end;
-    tie(vi, vi_end) = boost::vertices(*(_pol->seg_vis_graph->g));
+    tie(vi, vi_end) = boost::vertices(*(g));
     for (; vi != vi_end; ++vi)
     {
-        boost::adjacent_vertices(*vi,*(_pol->seg_vis_graph->g));
+        //boost::adjacent_vertices(*vi,*(_pol->seg_vis_graph->g));
+        double v_height;
+        if ( (*g)[*vi].type == 1 ) {
+            v_height = get_max_height_for_draw()*1.3;
+        } else {
+            v_height = get_max_height_for_draw()*1.5;
+        }
+        char node_name[200];
+        sprintf( node_name, "vertex type %d for %d ",(*g)[*vi].type, (*g)[*vi].segment_index);
+        if ( only_plot_enabled == true && 
+            *vi == *only_plot_vis_seg_graph_vertex) {
+            glColor3f(0.0, 1.0, 0.0);
+        } else {
+            glColor3f(0.0, 0.0, 1.0);
+        }
+        drawText3D((*g)[*vi].p_x,(*g)[*vi].p_y, v_height, node_name);
+        draw_sphere_at(int((*g)[*vi].p_x),int((*g)[*vi].p_y), v_height*0.99, 0.05 );
     }
     boost::graph_traits<Segment_Visibility_Graph::mygraph_t>::edge_iterator 
         ei, ei_end;
     tie(ei, ei_end) = boost::edges(*(_pol->seg_vis_graph->g));
-    Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
-
-    glColor3f(0.0, 1.0, 0.0);
-    glLineWidth(1.0);
-    
     for (; ei != ei_end; ++ei)
     {
         Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_source
              = boost::source(*ei,*g);
         Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_target
              = boost::target(*ei,*g);
-        if ( (*g)[ v_source ].type == 2 || (*g)[ v_target ].type == 2 )
-        {
-            
-        } else { continue; }
-        this->draw_line_from_to(
-            (*g)[ v_source ].p_x,
-            (*g)[ v_source ].p_y,
-            (*g)[ v_target ].p_x,
-            (*g)[ v_target ].p_y,
-            13.0);
-        //drawText
+        Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_temp;
+        if ( only_plot_enabled == true && 
+            v_source != *only_plot_vis_seg_graph_vertex && 
+            v_target != *only_plot_vis_seg_graph_vertex) {
+            continue;
+        }
+        double height = get_max_height_for_draw();
+        double height2 = get_max_height_for_draw();
+        if ( (*g)[ v_source ].type == 2 && (*g)[ v_target ].type == 2 ) {
+            glColor3f(1.0, 0.0, 0.0);
+        } else if ( (*g)[ v_source ].type == 2 || (*g)[ v_target ].type == 2 ) {
+            glColor3f(0.0, 1.0, 1.0);
+        } else {
+            glColor3f(0.0, 1.0, 0.0);
+        }
+        bool inverted_sou_tar = false;
+        if ( (*g)[*ei].segment_index2 == (*g)[ v_source ].segment_index ) {
+            inverted_sou_tar = true;
+            v_temp = v_source; v_source = v_target; v_target = v_temp;
+        } 
+        if ( only_plot_enabled && v_source == *only_plot_vis_seg_graph_vertex) {
+            glLineWidth(4.0);
+        } else {
+            glLineWidth(2.0);
+        }
+        if ( (*g)[ v_source ].type == 2 ) 
+            height = get_max_height_for_draw()*1.4;
+        else if ( (*g)[ v_source ].type == 1 )
+            height = get_max_height_for_draw()*1.2;
+        if ( (*g)[ v_target ].type == 2 ) 
+            height2 = get_max_height_for_draw()*1.4;
+        else if ( (*g)[ v_target ].type == 1 )
+            height2 = get_max_height_for_draw()*1.2;
         
+        this->draw_line_from_to(
+            (*g)[*ei].p_x,(*g)[*ei].p_y,
+            (*g)[*ei].p_x2,(*g)[*ei].p_y2,
+            height,height2);
+        char edge_info[200];
+        if ( (*g)[*ei].distance < numeric_limits<double>::max()/2 ) {
+            sprintf( edge_info, "%f ",(*g)[*ei].distance);
+            glColor3f(0.2, 0.2, 0.2);
+            drawText3D(
+                ((*g)[*ei].p_x + (*g)[*ei].p_x2)/2,
+                ((*g)[*ei].p_y + (*g)[*ei].p_y2)/2, 
+                (height+height2)/2, edge_info);
+        }
+        
+        // connect to respective vertices
+        double  height_v, height2_v;
+        if ( (*g)[ v_source ].type == 2 ) 
+            height_v = get_max_height_for_draw()*1.5;
+        else if ( (*g)[ v_source ].type == 1 )
+            height_v = get_max_height_for_draw()*1.3;
+        if ( (*g)[ v_target ].type == 2 ) 
+            height2_v = get_max_height_for_draw()*1.5;
+        else if ( (*g)[ v_target ].type == 1 )
+            height2_v = get_max_height_for_draw()*1.3;
+        
+        
+        glColor3f(1.0, 0.0, 0.0);
+        glLineWidth(1.0);
+        this->draw_line_from_to(
+            (*g)[*ei].p_x,(*g)[*ei].p_y,
+            (*g)[ v_source ].p_x, (*g)[ v_source ].p_y, 
+            height,height_v);
+        this->draw_line_from_to(
+            (*g)[*ei].p_x2,(*g)[*ei].p_y2,
+            (*g)[ v_target ].p_x, (*g)[ v_target ].p_y, 
+            height2,height2_v);
     }
+}
+
+void
+Viewer::draw_gui_text()
+{
+    glDisable(GL_LIGHTING);
+    drawText(0,0,"Test");
+    drawText(10,10,"Test");
+    glEnable(GL_LIGHTING);
 }
 
 void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vertex_iterator v_it)
 {
     Segment_Visibility_Graph::mygraph_t* g = _pol->seg_vis_graph->g;
+    if ( g == NULL ) return;
+    std::list<polygonization::KERNEL::Segment_2>::iterator 
+        spi = shortest_path.begin();
     
-    
-    std::list<Segment_Visibility_Graph::vertex>::iterator spi = shortest_path.begin();
-    double last_x = (*g)[ *v_it ].p_x;
-    double last_y = (*g)[ *v_it ].p_y;
-
-    for(++spi; spi != shortest_path.end(); ++spi) 
-    {
-        glLineWidth(3.0);
-        glColor3f(1.0, 1.0, 0.0);
-        this->draw_line_from_to(
-            last_x,
-            last_y,
-            (*g)[ *spi ].p_x,
-            (*g)[ *spi ].p_y,
-            13.0);
-        //renderText(100,150,"222");
-        //drawText(last_x,last_y,"test");
-        last_x = (*g)[ *spi ].p_x;
-        last_y = (*g)[ *spi ].p_y;
+    Segment_Visibility_Graph::vertex v,w,last_v;
+    v = *v_it;
+    w = _pol->get_segment_visibility_vertex( segment_plan_to_vertex_id, 1 );
+    glColor3f(0.5, 1.0, 0.25);
+    draw_sphere_at( (*g)[v].p_x, (*g)[v].p_y, this->get_max_height_for_draw() *1.1, 0.1);
+    glColor3f(0.0, 1.0, 1.00);
+    draw_sphere_at( (*g)[w].p_x, (*g)[w].p_y, this->get_max_height_for_draw() *1.1, 0.1);
+    for(; spi != shortest_path.end(); ++spi) 
+    {   
+        //M_INFO1("Draw line %f:%f - %f:%f\n",
+        //CGAL::to_double(spi->source().x()),
+        //CGAL::to_double(spi->source().y()),
+        //CGAL::to_double(spi->target().x()),
+        //CGAL::to_double(spi->target().y()));
+        this->draw_line_from_to( 
+            CGAL::to_double(spi->source().x()),
+            CGAL::to_double(spi->source().y()), 
+            CGAL::to_double(spi->target().x()),
+            CGAL::to_double(spi->target().y()), 
+            this->get_max_height_for_draw()*1.08,
+            this->get_max_height_for_draw()* 1.08);
+    }
+    glColor3f(0.0, 0.0, 1.0);
+    spi = shortest_split.begin();
+    for(; spi != shortest_split.end(); ++spi) 
+    {   
+        this->draw_line_from_to( 
+            CGAL::to_double(spi->source().x()),
+            CGAL::to_double(spi->source().y()), 
+            CGAL::to_double(spi->target().x()),
+            CGAL::to_double(spi->target().y()), 
+            this->get_max_height_for_draw()*1.1,
+            this->get_max_height_for_draw()* 1.1);
     }
     
+    
+    return ; 
     glColor3f(0.0, 1.0, 0.0);
     glLineWidth(1.0);
-    
     Segment_Visibility_Graph::mygraph_t::out_edge_iterator 
         ei, ei_end;
     tie(ei, ei_end) = boost::out_edges(*v_it,*g);
-    M_INFO2("Edges of Vertex %d type %d\n", 
-        (*g)[*v_it].segment_index, (*g)[*v_it].type);
     for (; ei != ei_end; ++ei)
     {
         Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_source
              = boost::source(*ei,*g);
         Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_target
              = boost::target(*ei,*g);
-        if ( (*g)[ v_source ].type == 2 || (*g)[ v_target ].type == 2 )
+        if ( (*g)[ v_source ].type == 2  )
         {
             glColor3f(0.0, 1.0, 0.0);
             glLineWidth(2.0);
-        } else { 
-            glColor3f(1.0, 0.5, 1.0);
+        } else if ( (*g)[ v_target ].type == 2 ) { 
+            glColor3f(0.0, 0.0, 1.0);
             glLineWidth(2.0);
+        } else {
+            glColor3f(1.0, 0.0, 0.0);
+            glLineWidth(3.0);
         }
         
-        M_INFO2("Edges to vertex %d of type %d at %f distance \n", (*g)[v_target].segment_index, (*g)[v_target].type, (*g)[*ei].distance);
+        double to_p_x,to_p_y;
+        //M_INFO2("Edge to vertex %d, type %d, dist %f,  (%f,%f)-(%f,%f)\n", 
+        //    (*g)[v_target].segment_index, 
+        //    (*g)[v_target].type, (*g)[*ei].distance,
+        //    (*g)[ v_source ].p_x, (*g)[ v_source ].p_y,
+        //    (*g)[ v_target ].p_x, (*g)[ v_target ].p_y);
+        if ( (*g)[*ei].point_is_set ) {
+            to_p_x = (*g)[*ei].p_x;
+            to_p_y = (*g)[*ei].p_y;
+            //M_INFO2("point_is_set (%f,%f)-(%f,%f)\n", to_p_x,to_p_y);
+        } else {
+            to_p_x = (*g)[ v_target ].p_x;
+            to_p_y = (*g)[ v_target ].p_y;    
+        }
         this->draw_line_from_to(
-            (*g)[ v_source ].p_x,
-            (*g)[ v_source ].p_y,
-            (*g)[ v_target ].p_x,
-            (*g)[ v_target ].p_y,
-            13.0);
+            (*g)[ v_source ].p_x, (*g)[ v_source ].p_y,
+            to_p_x,to_p_y,
+            this->get_max_height_for_draw());
+        
+        drawText3D(to_p_x,to_p_y, get_max_height_for_draw()*1.06, " To Point");
     }
 }
 
@@ -2003,12 +2197,17 @@ void Viewer::drawStrategyStep()
     glLineWidth(12.0);
     glColor3f(1.0, 1.0, 0.0);
     //std::cout << " Drawing strategy step " << std::endl;
-    if ( l1.target() != l1.source() )
-        this->drawSegment(l1);
-    if ( l2.target() != l2.source() )
-        this->drawSegment(l2);
+    std::list<polygonization::KERNEL::Segment_2>::iterator split_it;
+    split_it = split_point_list.begin();
+    while ( split_it != split_point_list.end() ) {
+        drawSegment( *split_it );
+        split_it++;
+    }
+    //if ( l1.target() != l1.source() )
+    //    this->drawSegment(l1);
+    //if ( l2.target() != l2.source() )
+    //    this->drawSegment(l2);
     
-    //std::cout << " Drawing blocking lines " << std::endl;
     glLineWidth(8.0);
     glColor3f(0.0, 0.0, 1.0);
     std::map< std::pair<int,int>,lineclear::Segment>::iterator i;
@@ -2017,9 +2216,22 @@ void Viewer::drawStrategyStep()
         drawSegment( i->second );
         i++;
     }
+    
+    std::map< std::pair<int,int>,std::list<polygonization::KERNEL::Segment_2> >::iterator i2;
+    i2 = blocking_lines_map2.begin();
+    while ( i2 != blocking_lines_map2.end() ) {
+        std::list<polygonization::KERNEL::Segment_2>::iterator list_it;
+        list_it = i2->second.begin();
+        while ( list_it != i2->second.end() ) {
+            //*list_it->target()
+            drawSegment( *list_it );
+            list_it++;
+        }   
+        i2++;
+    }
 }
 
-void Viewer::drawSegment(lineclear::Segment s) {
+void Viewer::drawSegment(lineclear::Segment s, double add_ground) {
     double ground = this->get_max_height() / 1000.0;
     double wx,wy,w2x,w2y;
     int gx = ceil( CGAL::to_double(s.source().x())); 
@@ -2033,9 +2245,25 @@ void Viewer::drawSegment(lineclear::Segment s) {
     _map->grid2world(w2x,w2y,g2x,g2y);
     drawSphere(0.1,wx,wy,ground);
     glBegin(GL_LINES);
-     glVertex3f(wx,wy, ground);
-     glVertex3f(w2x,w2y, ground);
+     glVertex3f(wx,wy, ground + add_ground);
+     glVertex3f(w2x,w2y, ground + add_ground);
     glEnd();
+}
+
+
+void Viewer::drawText3D(double p1x,double p1y, double ground, std::string txt)
+{
+    //double base_ground = this->get_max_height() / 1000.0;
+    double wx,wy;
+    int gx = ceil( p1x), gy = ceil( p1y);
+    _map->grid2world(wx,wy,gx,gy);
+    QString qtext(txt.c_str());
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    this->renderText( wx,wy,ground, qtext, 
+        scaledFont(QFont("Arial", 12, QFont::Bold, false)));
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
 }
 
 void Viewer::drawLine(double p1x,double p1y, double p2x, double p2y, double ground)
@@ -2306,7 +2534,11 @@ void Viewer::setPursuerPosFromUTM(double easting, double northing)
 }
 
 void Viewer::drawVoronoiDiagram() {
+    if (_pol == NULL ) 
+        return;
     polygonization::Voronoi_Diagram* vd = _pol->VD;
+    if (vd == NULL ) 
+        return;
     polygonization::Voronoi_Diagram::Edge_iterator e_i;
     glEnable(GL_LIGHTING);
     glLineWidth(1.0);
@@ -2320,7 +2552,7 @@ void Viewer::drawVoronoiDiagram() {
             lineclear::Segment s(e_i->source()->point(),
                 e_i->target()->point());
             //std::cout << s << std::endl;
-            drawSegment(s);
+            drawSegment(s, this->get_max_height_for_draw());
         }
     }
 }
