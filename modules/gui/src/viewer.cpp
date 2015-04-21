@@ -662,7 +662,9 @@ void Viewer::next_step() {
     // display split between current obstacles and the new one 
     int new_obstacle = *obstacle_sequence_it;
 
-    if ( cleared_obstacles.size() > 1 ) {
+    if ( cleared_obstacles.size() > 1 
+        || ( cleared_obstacles.size() == 1 
+        && !_ct->are_adjacent(cleared_obstacles.front(),new_obstacle) ) ) {
         
         lineclear::Segment o_seg = _env->get_edge( new_obstacle );
 

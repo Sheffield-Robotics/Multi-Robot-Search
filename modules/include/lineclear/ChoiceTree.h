@@ -9,8 +9,8 @@
 #ifndef CHOICETREE_H
 #define CHOICETREE_H
 
-#define DEBUG_CHOICETREE 0
-#define DEBUG_CT_LOAD 0
+#define DEBUG_CHOICETREE 6
+#define DEBUG_CT_LOAD 6
 #define DEBUG_TRAJECTORY_CREATION 0
 #define DEBUG_RECORD_POSES 0
 
@@ -72,6 +72,16 @@ namespace lineclear {
         void record_poses(int o1, int o2, Pos_list& poses, int at);
         void remove_poses(int o1, int o2, int at);
         Pos_list get_poses(int o1, int o2, int at = -1);
+        
+        inline
+        bool are_adjacent(int i, int j ) {
+            int val = abs(i-j);
+            if ( val < 2 || val >= _n-1 ) { 
+                return true; 
+            }
+            return false;
+        }
+        
         std::vector<Pos_list> all_frequin_poses;
         Sweep_state current_lines;
         vector<Sweep_state> all_lines_in_time;

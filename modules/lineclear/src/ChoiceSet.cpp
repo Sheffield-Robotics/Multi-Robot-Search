@@ -63,7 +63,15 @@ CutSequence* ChoiceSet::get_best_cut_sequence() {
     int best_i = 0;
     int cost = -1, c;
     int up_to_i = int(_sequences.size());
+    if ( DEBUG_CHOICESET >= 3 ) {
+        std::cout << " ChoiceSet::get_best_cut_sequence()"
+            << " has " << up_to_i << " sequence(s) " << std::endl;
+    }
     for ( int i = 0; i < up_to_i; i++ ) {
+        if ( DEBUG_CHOICESET >= 4 ) {
+            std::cout << " sequence " << i << std::endl;
+            _sequences[i].first.print();
+        }
         c = _sequences[i].first.get_final_cost();
         if ( (c < cost || cost == -1) && c != -1 ) {
             best_i = i; cost = c;
@@ -129,7 +137,6 @@ bool ChoiceSet::is_dominated_weakly( CutSequence& cs ) {
 }
 
 void ChoiceSet::remove_dominated() {
-    // 
     if ( DEBUG_CHOICESET >= 1 ) {
         std::cout << " REMOVE DOMINATED " << std::endl;
     }

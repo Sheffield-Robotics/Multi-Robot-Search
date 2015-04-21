@@ -1306,9 +1306,6 @@ ChoiceTree::new_cutsequence_from(ChoiceSet *cs, int j, int b_l, int b_r,
 }
 
 ChoiceSet* ChoiceTree::get_choice_set_at(int i, int k) {
-    if ( DEBUG_CHOICETREE >= 2 ) {
-        std::cout << "get_choice_set_at " << i << ":" << k << std::endl;
-    }
     _e->fix_index(i);
     if ( DEBUG_CHOICETREE >= 3 ) {
         std::cout << "get_choice_set_at fixed " << i << ":" << k << std::endl;
