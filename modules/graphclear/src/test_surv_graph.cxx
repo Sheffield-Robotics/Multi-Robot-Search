@@ -75,12 +75,12 @@ int main (int argc, char **argv)
   std::cout << num_vertices(g) << " vertices " << std::endl;
   std::cout << num_edges(g) << " edges " << std::endl;
   surveillance_graph_t::vertex_iterator v_i,v_end;
-  tie(v_i,v_end) = vertices(g);
+  boost::tie(v_i,v_end) = vertices(g);
   for ( ; v_i != v_end; ++v_i ) {
     g[*v_i].w = rand() % 20 + 10;
   }    
   surveillance_graph_t::edge_iterator e_i,e_end;
-  tie(e_i,e_end) = edges(g);
+  boost::tie(e_i,e_end) = edges(g);
   for ( ; e_i != e_end; ++e_i ) {
     g[*e_i].w = rand() % 10 + 1;
   }

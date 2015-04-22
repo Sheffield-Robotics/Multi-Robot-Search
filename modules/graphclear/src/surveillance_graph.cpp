@@ -503,19 +503,19 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
   out_file3.open(filename3.c_str());
 
   int nvertices = 0;
-  tie(vert_it, vert_it_end) = vertices(*this);
+  boost::tie(vert_it, vert_it_end) = vertices(*this);
   for (; vert_it != vert_it_end ; ++vert_it ) {
     nvertices++;
   }
   int nedges = 0;
-  tie( t_e_it, t_e_it_end ) = edges( *this );
+  boost::tie( t_e_it, t_e_it_end ) = edges( *this );
   for (; t_e_it != t_e_it_end; t_e_it++) {
     nedges++;
   }
 
   out_file << nvertices << ", " << nedges << std::endl;
   out_file << std::endl;
-  tie(vert_it, vert_it_end) = vertices(*this);
+  boost::tie(vert_it, vert_it_end) = vertices(*this);
   for (; vert_it != vert_it_end ; ) {
     out_file << (*this)[*vert_it].w;
     vert_it++;
@@ -528,7 +528,7 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
   out_file << std::endl;
     
   //  Edges
-  tie( t_e_it, t_e_it_end ) = edges( *this );
+  boost::tie( t_e_it, t_e_it_end ) = edges( *this );
   for (; t_e_it != t_e_it_end;) {
     out_file << (*this)[*t_e_it].w;
     t_e_it++;
@@ -541,14 +541,14 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
   out_file << std::endl;
 
   //distance matrix n+m x n+m
-  tie(vert_it, vert_it_end) = vertices(*this);
+  boost::tie(vert_it, vert_it_end) = vertices(*this);
   for (; vert_it != vert_it_end ; ++vert_it ) {
-    tie(v_it, v_it_end) = vertices(*this);
+    boost::tie(v_it, v_it_end) = vertices(*this);
     for (; v_it != v_it_end ; ++v_it ) {
       out_file << this->distance_between(*vert_it,*v_it);
       out_file << ", ";
     }
-    tie( e_it, e_it_end) = edges( *this );
+    boost::tie( e_it, e_it_end) = edges( *this );
     double dist = 0;
     for (; e_it != e_it_end; ) {
       out_file << this->distance_between(*vert_it,*e_it);
@@ -564,14 +564,14 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
     out_file3 << ((int)dist) << "\n";
   }
   //out_file << std::endl;
-  tie( t_e_it, t_e_it_end ) = edges( *this );
+  boost::tie( t_e_it, t_e_it_end ) = edges( *this );
   for (; t_e_it != t_e_it_end; t_e_it++) {
-    tie(v_it, v_it_end) = vertices(*this);
+    boost::tie(v_it, v_it_end) = vertices(*this);
     for (; v_it != v_it_end ; ++v_it ) {
       out_file << this->distance_between(*v_it,*t_e_it);
       out_file << ", ";
     }
-    tie( e_it, e_it_end) = edges( *this );
+    boost::tie( e_it, e_it_end) = edges( *this );
     for (; e_it != e_it_end; ) {
       out_file << this->distance_between(*t_e_it,*e_it);
       e_it++;
@@ -586,9 +586,9 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
     
     
   // vertex to edge adjacency
-  tie(vert_it, vert_it_end) = vertices(*this);
+  boost::tie(vert_it, vert_it_end) = vertices(*this);
   for (; vert_it != vert_it_end ; ++vert_it ) {
-    tie( e_it, e_it_end) = edges( *this );
+    boost::tie( e_it, e_it_end) = edges( *this );
     for (; e_it != e_it_end; ) {
       if ( source(*e_it,*this) == *vert_it 
            || target(*e_it,*this) == *vert_it) {
@@ -606,9 +606,9 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
   out_file << std::endl;
     
   // edge to vertex adjacency
-  tie( e_it, e_it_end) = edges( *this );
+  boost::tie( e_it, e_it_end) = edges( *this );
   for (; e_it != e_it_end; e_it++) {
-    tie(vert_it, vert_it_end) = vertices(*this);
+    boost::tie(vert_it, vert_it_end) = vertices(*this);
     for (; vert_it != vert_it_end ;) {
       if ( source(*e_it,*this) == *vert_it 
            || target(*e_it,*this) == *vert_it) {
@@ -627,10 +627,10 @@ surveillance_graph_t::print_graph_to_txt_file(const char* filename)
     
   // vertex to vertex adjacency
   double dist = 0;
-  tie(vert_it, vert_it_end) = vertices(*this);
+  boost::tie(vert_it, vert_it_end) = vertices(*this);
   for (; vert_it != vert_it_end ; ++vert_it ) 
     {
-      tie(v_it, v_it_end) = vertices(*this);
+      boost::tie(v_it, v_it_end) = vertices(*this);
       for (; v_it != v_it_end ; ) {
         if ( edge(*v_it, *vert_it, *this).second ) {
           out_file << "1";
@@ -691,13 +691,13 @@ namespace graphclear
     } 
     
     surveillance_graph_t::vertex_iterator v_i,v_end;
-    tie(v_i,v_end) = vertices(g);
+    boost::tie(v_i,v_end) = vertices(g);
     for ( ; v_i != v_end; ++v_i ) {
       add_vertex( g[*v_i], tree_of_g);
     }
 
     surveillance_graph_t::edge_iterator e_i,e_end;
-    tie(e_i,e_end) = edges(g);
+    boost::tie(e_i,e_end) = edges(g);
     for ( ; e_i != e_end; ++e_i ) {
       if (g[*e_i].spanning_tree == true)
         {
@@ -714,7 +714,7 @@ namespace graphclear
   void cleanup_tree(surveillance_graph_t& tree_of_g) {
     //std::cout << " cleanup_tree " << std::endl;
     surveillance_graph_t::edge_iterator e_i,e_end;
-    tie(e_i,e_end) = edges(tree_of_g);
+    boost::tie(e_i,e_end) = edges(tree_of_g);
     for ( ; e_i != e_end; ++e_i ) {
       delete tree_of_g[*e_i].cut_sequence_source_to_target;
       delete tree_of_g[*e_i].cut_sequence_target_to_source;
@@ -749,12 +749,12 @@ namespace graphclear
     std::cout << "Number of final con components " << num_con_com_final << std::endl;
     
     surveillance_graph_t::vertex_iterator v_i,v_end;
-    tie(v_i,v_end) = vertices(g);
+    boost::tie(v_i,v_end) = vertices(g);
     for ( ; v_i != v_end; ++v_i ) {
       g[*v_i].w = roll_die(min_v_w,max_v_w);
     }    
     surveillance_graph_t::edge_iterator e_i,e_end;
-    tie(e_i,e_end) = edges(g);
+    boost::tie(e_i,e_end) = edges(g);
     for ( ; e_i != e_end; ++e_i ) {
       int a = g[source(*e_i,g)].w;
       int b = g[target(*e_i,g)].w;
@@ -839,12 +839,12 @@ namespace graphclear
     std::cout << "Number of final con components after connecting" << num_con_com_final << std::endl;
     
     surveillance_graph_t::vertex_iterator v_i,v_end;
-    tie(v_i,v_end) = vertices(g);
+    boost::tie(v_i,v_end) = vertices(g);
     for ( ; v_i != v_end; ++v_i ) {
       g[*v_i].w = roll_die(min_v_w,max_v_w);
     }    
     surveillance_graph_t::edge_iterator e_i,e_end;
-    tie(e_i,e_end) = edges(g);
+    boost::tie(e_i,e_end) = edges(g);
     for ( ; e_i != e_end; ++e_i ) {
       int a = g[source(*e_i,g)].w;
       int b = g[target(*e_i,g)].w;

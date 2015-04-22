@@ -397,7 +397,7 @@ void Viewer::keyPressEvent(QKeyEvent *e)
     case Qt::Key_V :
         if ( only_plot_enabled == false ) {
                 only_plot_enabled = true;
-                tie(only_plot_vis_seg_graph_vertex, 
+                boost::tie(only_plot_vis_seg_graph_vertex, 
                       only_plot_vis_seg_graph_vertex_end) 
                     = boost::vertices(*(_pol->seg_vis_graph->g));
         } else {
@@ -415,7 +415,7 @@ void Viewer::keyPressEvent(QKeyEvent *e)
             return;
         if ( drawVisiGraphVertex == false) {
             drawVisiGraphVertex = true;
-            tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
+            boost::tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
         } else {
             this->toggle_visi_graph_vertex();
         }
@@ -1300,7 +1300,7 @@ void Viewer::toggle_visi_graph_vertex()
         v_it++;
     }
     if ( v_it == v_end ) {
-        tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
+        boost::tie(v_it, v_end) = boost::vertices(*(_pol->seg_vis_graph->g));
     }
     
     Segment_Visibility_Graph::vertex v,w;
@@ -1962,7 +1962,7 @@ void Viewer::drawVisibilityGraph()
     
     boost::graph_traits<Segment_Visibility_Graph::mygraph_t>::vertex_iterator 
         vi, vi_end;
-    tie(vi, vi_end) = boost::vertices(*(g));
+    boost::tie(vi, vi_end) = boost::vertices(*(g));
     for (; vi != vi_end; ++vi)
     {
         //boost::adjacent_vertices(*vi,*(_pol->seg_vis_graph->g));
@@ -1985,7 +1985,7 @@ void Viewer::drawVisibilityGraph()
     }
     boost::graph_traits<Segment_Visibility_Graph::mygraph_t>::edge_iterator 
         ei, ei_end;
-    tie(ei, ei_end) = boost::edges(*(_pol->seg_vis_graph->g));
+    boost::tie(ei, ei_end) = boost::edges(*(_pol->seg_vis_graph->g));
     for (; ei != ei_end; ++ei)
     {
         Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_source
@@ -2122,7 +2122,7 @@ void Viewer::drawVisibilityGraphVertex(Segment_Visibility_Graph::mygraph_t::vert
     glLineWidth(1.0);
     Segment_Visibility_Graph::mygraph_t::out_edge_iterator 
         ei, ei_end;
-    tie(ei, ei_end) = boost::out_edges(*v_it,*g);
+    boost::tie(ei, ei_end) = boost::out_edges(*v_it,*g);
     for (; ei != ei_end; ++ei)
     {
         Segment_Visibility_Graph::mygraph_t::vertex_descriptor v_source
