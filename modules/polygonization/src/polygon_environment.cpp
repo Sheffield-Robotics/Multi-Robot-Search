@@ -373,14 +373,14 @@ Polygon_Environment::get_block_distance(int i, int j)
 bool
 Polygon_Environment::is_necessary_split(int i, int j, int k)
 {
-    //fix_index(i);fix_index(j);fix_index(k);
-    //i--;j--;k--; // indices for cost functions start at 1 but pol env at 0
     // splits are only necessary if the block cost between i,k and j,k
     // are not touching another obstacle
-    if ( is_necessary_block(i,k) || is_necessary_block(j,k) ) {
-        return true;
-    }
-
+    return 
+        is_necessary_block(i,k) && is_necessary_block(j,k);
+    
+    //fix_index(i);fix_index(j);fix_index(k);
+    //i--;j--;k--; // indices for cost functions start at 1 but pol env at 0
+    
     //if ( i == k || j == k ) 
     //    return true;
     //
@@ -404,18 +404,29 @@ Polygon_Environment::is_necessary_split(int i, int j, int k)
     //}
 }
 
+/*
+* determines whether a block between i and j has to be considered
+* i.e., whether it could ever originate from a previous split
+*/
 bool 
 Polygon_Environment::is_necessary_block(int i, int j) 
 {
-    //return true;
-    // determines whether a block between i and j has to be considered
-    fix_index(i);fix_index(j);
-    i--;j--;
+    // determine which side of the choice set is contaminated 
+    // and which is cleared
+    int original_i = i, original_j = j;
+    fix_index(i);fix_index(j); // fixes the index to be within range 
+    i--;j--; // fixes the 1 to 0 address issue (choice sets start at 1, segment indices at 0)
+    
+    // same obstacle always has a 0 block
     if ( i == j ) 
         return true;
+    
+    // if the segments are directly visible, the block is necessary 
     if ( (*seg_to_seg_visible)[i][j] || (*seg_to_seg_visible)[j][i] ) {
         return true;
     }
+    
+    //blocks between neighbors are automatically necessary to consider
     if ( abs(j-i) == 1 
         || (i==0 && j==master_polygon->size()-1) 
         || (j==0 && i==master_polygon->size()-1) 
@@ -423,22 +434,48 @@ Polygon_Environment::is_necessary_block(int i, int j)
     {
         return true;            
     }  
-    return false;
+    
+    //blocks that contain no contaminated obstacle indices are necessary!    
+    double d;
+    std::list<KERNEL::Segment_2> p = get_shortest_path(i,j,d);
+    if ( p.size() <= 1 ) 
+        return true;
+    std::list<KERNEL::Segment_2>::iterator it = p.begin(), it_end=p.end();
+    int n_non_zero_segments = 0;
+    for ( ; it != it_end; it++ ) {
+        int seg_index = 
+            get_segment_index_for_point( 
+                VisiLibity::Point( CGAL::to_double(it->target().x()),
+                     CGAL::to_double(it->target().y()) )
+                );
+        // check if the segment index is contaminated
+        bool seg_index_contaminated = false; 
+        //called as is_necessary_block(original_i = i-1,original_i = i+k) )
+        if ( original_i < seg_index && seg_index < original_j ) {
+            seg_index_contaminated = true;
+        } else if ( original_j != j && seg_index < j+1  ) {
+            // j was fixed from above the index range to below i
+            seg_index_contaminated = true;
+        }
+        
+        if ( !seg_index_contaminated ) {
+            if ( seg_index != i && seg_index != j ) {
+                return true; 
+            }
+        } else { 
+            if ( seg_index != i && seg_index != j ) {
+                return false; 
+            }
+        }
+        // if ( it->squared_length() > 0 ) {
+        //     n_non_zero_segments++;
+        //     if ( n_non_zero_segments > 2 && seg_index_contaminated ) {
+        //         return false;
+        //     }
+        // }
+    }
 
-    //std::list<KERNEL::Segment_2> p = get_shortest_path(i,j,d);
-    //if ( p.size() <= 1 ) 
-    //    return true;
-    //std::list<KERNEL::Segment_2>::iterator it = p.begin(), it_end=p.end();
-    //int n_non_zero_segments = 0;
-    //for ( ; it != it_end; it++ ) {
-    //    if ( it->squared_length() > 0 ) {
-    //        n_non_zero_segments++;
-    //        if ( n_non_zero_segments > 2 ) {
-    //            return false;
-    //        }
-    //    }
-    //}
-    //return true;
+    return false;
 }
     
 int 
@@ -516,8 +553,6 @@ std::list<KERNEL::Segment_2>
     double final_d_i, final_d_j;
     list_i_k = get_shortest_path(i, k,final_d_i);
     list_j_k = get_shortest_path(j, k,final_d_j);
-    //std::cout << " final_d_i " << final_d_i << std::endl;
-    //std::cout << " final_d_j " << final_d_j << std::endl;
     //find point on k
     bool success = false;
     KERNEL::Point_2 point_on_k_from_i;
@@ -539,7 +574,10 @@ std::list<KERNEL::Segment_2>
     if (!success) 
         M_INFO3("ERROR - no point on segment found\n");
     KERNEL::Vector_2 vec(point_on_k_from_i,point_on_k_from_j);
-    
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
+        std::cout << " point_on_k_from_i  " << point_on_k_from_i << std::endl;
+        std::cout << " point_on_k_from_j  " << point_on_k_from_j << std::endl;
+    }    
     // interpolate between point_on_k_from_i and point_on_k_from_j
     double step_size = 5;
     int n_steps = int ( 
@@ -552,11 +590,18 @@ std::list<KERNEL::Segment_2>
     double final_d_i2_best = std::numeric_limits<double>::max();
     double final_d_j2_best = std::numeric_limits<double>::max();
     std::list<KERNEL::Segment_2> l1_best;
+    
+    char fname[200];
+    sprintf( fname, "test_%d_%d_%d.txt",i,j,k);
+    std::ofstream out_file(fname, std::ios_base::app);
+    out_file << std::endl;
+    out_file << i << " " << j << " " << k << " " << std::endl;
+    
     if (n_steps == 0) 
         n_steps = 1;
-    for ( int step =0; step <= n_steps-1; step++ ) {
-        
-        
+    out_file << n_steps << std::endl;
+    for ( int step =0; step <= n_steps-1; step++ ) 
+    {
         KERNEL::Point_2 v;
         double r = (double(step)/double(n_steps-1));
         if ( n_steps == 1 || step == 0 ) {
@@ -605,10 +650,12 @@ std::list<KERNEL::Segment_2>
             final_d_j2_best = final_d_j2;
             l1_best = l1;
         }
+        out_file << step << " " << final_d_i2 + final_d_j2 <<  std::endl;
     }
     
     cost1 = final_d_i2_best;
     cost2 = final_d_j2_best;
+    out_file.close();
     return l1_best;
 }
 
@@ -848,7 +895,8 @@ Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
     } else if ( ( abs(j-i) == 1 
           || (i==0 && j==master_polygon->size()-1) 
           || (j==0 && i==master_polygon->size()-1) ) 
-         && master_polygon->size() != i && master_polygon->size() != j ) {
+         && master_polygon->size() != i && master_polygon->size() != j ) 
+    {
         //the common point of j and i is large one
         if ( DEBUG_POLYGON_ENVIRONMENT >= 2 )
             M_INFO2("Taking  vertex directly\n");
@@ -1193,10 +1241,12 @@ Polygon_Environment::Point_2_from_poly_vertex( VisiLibity::Point& p )
     return KERNEL::Point_2(p.x(),p.y());
 }
 
+/*
+ * // this is a vertex index - starting at 0, for segment [vertex_0,vertex_1]
+ */
 int 
 Polygon_Environment::get_segment_index_for_point( VisiLibity::Point p ) 
 {
-    // this is a vertex index - starting at 0, for segment [vertex_0,vertex_1]
     return p.index_of_projection_onto_boundary_of( *my_environment );
 }
 

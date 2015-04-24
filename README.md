@@ -23,5 +23,13 @@ make
 
 
 
+A simple gnu plot for test files
 
-
+list = system('ls test_*')
+i = 1
+do for [file in list] {
+    set title sprintf("%s | %d fs", file, i)
+    plot file every ::1 using 1:2 with lines
+    i = i + 1
+    pause 0.5
+}

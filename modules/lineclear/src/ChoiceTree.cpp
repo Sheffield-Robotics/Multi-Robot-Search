@@ -36,6 +36,7 @@ void ChoiceTree::init_choice_tree() {
     _choiceSetMatrix = new ChoiceSet**[_n];
     _cost_updated = new bool**[_n];
     double range = yaml_param["range_for_cost"].as<float>();
+    // poly_costs are derived directly from the polygon environment and not _e
     int use_poly_costs = yaml_param["use_poly_environment_costs"].as<int>();
     for (int k = 1; k < _n; ++k ) {
         _choiceSetMatrix[k] = new ChoiceSet*[_n+1];
@@ -72,10 +73,12 @@ void ChoiceTree::init_choice_tree() {
                         int c = -1;
                         if ( _pol_env->is_necessary_split(i-1, i+k, o) ) {
                             std::cout << "   k=" << k << "   i=" << i 
-                                << "  j=" << j << std::endl;
+                                << "  j=" << j << " ";
                             c = _pol_env->get_split_cost(i-1, i+k, o, range);  
+                        } else {
+                            std::cout << "  skipped ";
                         }
-                        M_INFO2_D(DEBUG_CHOICETREE,3,"%d ",c);
+                        M_INFO2_D(DEBUG_CHOICETREE,3,"c=%d \n ",c);
                         _choiceSetMatrix[k][i]->set_c_at(j,c);
                     } else {
                         int c;
