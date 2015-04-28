@@ -540,6 +540,33 @@ std::list<KERNEL::Segment_2>
         M_INFO1("\n shortest_split_costs %d %d %d\n",i,j,k);
     }
     
+    if ( is_sequence_split(i,j,k) ) {
+        M_INFO1("     indices are sequential  \n");
+        int smallest, largest;
+        smallest = ( i < k ) ? i : j;
+        largest = ( i < k ) ? j : i;
+
+        KERNEL::Orientation o1 = 
+                CGAL::orientation( 
+                    master_polygon->vertex(smallest), 
+                    master_polygon->vertex(k),
+                    master_polygon->vertex(largest));
+        KERNEL::Orientation o2 = 
+                CGAL::orientation( 
+                    master_polygon->vertex(k),
+                    master_polygon->vertex(largest),
+                    master_polygon->edge(largest).target());
+        if ( o1 != CGAL::RIGHT_TURN && o2 != CGAL::RIGHT_TURN ) {
+            // we can skip the steps below and just return the length of edge k
+            cost1 = sqrt( CGAL::to_double( master_polygon->edge(k).squared_length() ) );
+            cost2 = 0;
+            split_point_index = 0;
+            std::list<KERNEL::Segment_2> return_this;
+            return_this.push_back(  master_polygon->edge(k) );
+            return return_this;
+        }          
+    }
+    
     std::list<KERNEL::Segment_2> list_i_k, list_j_k;
     double final_d_i, final_d_j;
     list_i_k = get_shortest_path(i, k,final_d_i);
@@ -910,9 +937,13 @@ Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
     
     double shortest_distance = std::numeric_limits<double>::max();
     int n_segs = this->seg_vis_graph_type1_vertices.size();
-    
+    M_INFO2("seg_to_seg_visible->size() %d \n", seg_to_seg_visible->size() );
+    M_INFO2("seg_to_seg_visible[i].size()  %d \n ", seg_to_seg_visible[i].size() );
+    M_INFO2("(*seg_to_seg_visible)[i].size()  %d \n ", (*seg_to_seg_visible)[i].size() );
+    bool tr = (*seg_to_seg_visible)[i][j];
+    M_INFO2("visible?  %d \n",  tr);
     if ( i < seg_to_seg_visible->size() 
-            && j < seg_to_seg_visible[i].size() 
+            && j < (*seg_to_seg_visible)[i].size() 
             && (*seg_to_seg_visible)[i][j] ) {
         if ( DEBUG_POLYGON_ENVIRONMENT >= 3 ) {
             M_INFO2("Segments VISIBLE %d-%d - checking distances\n", i,j);
