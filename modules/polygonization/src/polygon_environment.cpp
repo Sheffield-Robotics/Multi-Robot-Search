@@ -379,29 +379,7 @@ Polygon_Environment::is_necessary_split(int i, int j, int k)
         is_necessary_block(i,k) && is_necessary_block(j,k);
     
     //fix_index(i);fix_index(j);fix_index(k);
-    //i--;j--;k--; // indices for cost functions start at 1 but pol env at 0
-    
-    //if ( i == k || j == k ) 
-    //    return true;
-    //
-    //if ( (*seg_to_seg_visible)[i][k] || (*seg_to_seg_visible)[k][i] ) {
-    //    return true;
-    //}
-    //if ( (*seg_to_seg_visible)[j][k] || (*seg_to_seg_visible)[k][j] ) {
-    //    return true;
-    //}
-    //if ( abs(j-k) < 2 ) {
-    //    
-    //}
-    //if ( abs(i-k) < 2 ) {
-    //    
-    //}
-    //if ( k==master_polygon->size()-1 && (j ==0 || i == 0) ) {
-    //    
-    //}
-    //if ( k==0 && (j ==master_polygon->size()-1 || i == master_polygon->size()-1) ) {
-    //    
-    //}
+    //i--;j--;k--; // indices for cost functions start at 1 but pol env at 0    
 }
 
 /*
@@ -539,6 +517,19 @@ std::list<KERNEL::Segment_2>
     std::list<KERNEL::Segment_2> l = shortest_split_costs(i,j,k, cost1, cost2,split_point_index);
     cost = cost1 + cost2;
     return l;
+}
+
+bool
+Polygon_Environment::is_sequence_split(int i, int j, int k)
+{
+    //  check if k is in the middle between i and j (or between j and i)
+    if ( get_next_index(i) == k && get_next_index(k) == j) {
+        return true;
+    } else if ( get_next_index(j) == k && get_next_index(k) == i) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 std::list<KERNEL::Segment_2>
@@ -785,6 +776,7 @@ Polygon_Environment::process_visibility_polygon(
             M_INFO1("     Closest point at distance %f  \n",dis);
             std::cout << "      Closest point is " << closest_p << std::endl;
             M_INFO1("      ---> Adding edges to seg visi graph...\n");
+            M_INFO1("      ---> v_index %d and n_segs %d.\n", v_index, n_segs);
         }
         KERNEL::Segment_2 seg_to_seg_seg(v,closest_p);
         
@@ -832,6 +824,11 @@ Polygon_Environment::process_visibility_polygon(
 void
 Polygon_Environment::update_seg_to_seg(int i, int j,KERNEL::Segment_2 s, double d)
 {
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+        M_INFO1("            update_seg_to_seg %d to %d  \n",i,j);
+        std::cout << s << std::endl;
+        M_INFO1("            update_seg_to_seg d=%f  \n",d);
+    }
     if ( (*seg_to_seg_visible)[i][j] ) {
         // already visible, compare distances
         if ( d < (*seg_to_seg_distance)[i][j] ) {
@@ -888,6 +885,7 @@ Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
     
     std::list<KERNEL::Segment_2> segment_list;
     std::list<KERNEL::Segment_2> segment_list_path;
+    // The quick options
     if ( i == j ) {
         if ( DEBUG_POLYGON_ENVIRONMENT >= 3 )
             M_INFO2("i==j returning 0 and empty segment list\n");
@@ -909,14 +907,17 @@ Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
             M_ERR("ERROR index i or j out of bounds %d %d >= %d\n",i,j,int(master_polygon->size()) );
         }
     }
+    
     double shortest_distance = std::numeric_limits<double>::max();
     int n_segs = this->seg_vis_graph_type1_vertices.size();
     
     if ( i < seg_to_seg_visible->size() 
             && j < seg_to_seg_visible[i].size() 
             && (*seg_to_seg_visible)[i][j] ) {
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 3 )
-            M_INFO2("Segments VISIBLE - checking distances\n");        
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 3 ) {
+            M_INFO2("Segments VISIBLE %d-%d - checking distances\n", i,j);
+        }
+            
         segment_list.push_back( (*seg_to_seg_segments)[i][j]);
         shortest_distance = (*seg_to_seg_distance)[i][j];
     } 

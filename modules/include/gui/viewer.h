@@ -96,7 +96,10 @@ class Viewer : public QGLViewer
       void draw_line_from_to(int gx,int gy, int g2x, int g2y, double h, double h2);
       void drawText3D(double p1x,double p1y, double ground, std::string txt);
       void drawLine(double p1x,double p1y, double p2x, double p2y, double ground = 0);
+      void drawPolygonizationSegment(polygonization::Segment s);
       void draw_UAV_at(int x, int y);
+      void draw_shortest_split();
+      void ask_for_ijk();
       void compute_lineclear_strategy();
       //void computing_adapted_cost();
       void save_choice_tree();
@@ -110,7 +113,6 @@ class Viewer : public QGLViewer
       void print_help();
       void draw_gui_text();
       
-
       void init_pol();
       void init_env();
       
@@ -168,6 +170,7 @@ class Viewer : public QGLViewer
       bool drawVisiPoli;
       bool drawVisiGraph;
       bool drawVisiGraphVertex;
+      bool drawShortestSplit;
       bool triggerDumpScreenShot;
       bool only_plot_enabled;
       Segment_Visibility_Graph::mygraph_t::vertex_iterator 
@@ -232,6 +235,8 @@ class Viewer : public QGLViewer
       int line_visibility_test_grid_y1;
       int line_visibility_test_grid_x2;
       int line_visibility_test_grid_y2;
+      
+      int vis_graph_i,vis_graph_j,vis_graph_k;
       
       Ui::ViewerInterface* viewer_interface_;
       Ui::OptionWidget* option_widget_;

@@ -166,6 +166,10 @@ namespace polygonization {
         
         double shortest_path_distance_between(double x1,double y1,double x2, double y2);
         
+        bool
+        is_sequence_split(int i, int j, int k);
+        
+        
         void process_visibility_polygon(
             int main_segment_index,
             KERNEL::Point_2 v, 

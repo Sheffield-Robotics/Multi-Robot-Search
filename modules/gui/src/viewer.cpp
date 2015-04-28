@@ -52,6 +52,7 @@ Viewer::Viewer(QWidget* parent, const QGLWidget* shareWidget, Qt::WFlags flags) 
     setRobotPose = false;
     drawWireFrame = false;
     drawVisiPoli = false;
+    drawShortestSplit = false;
     drawVisiGraphVertex = false;
     drawVisiGraph = false;
     drawStrategyStepFlag = false;
@@ -265,6 +266,9 @@ void Viewer::draw()
     if (drawStrategyStepFlag) 
         drawStrategyStep();
     
+    if (drawShortestSplit)
+        draw_shortest_split();
+    
     if (triggerDumpScreenShot) {
         dumpScreenShot();
         triggerDumpScreenShot=false;
@@ -389,10 +393,9 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         this->load_strategy();
         break;
     case Qt::Key_C:
-        //toggle_draw_up_to();
-        //toggle_sweep_state();
-        //toggle_current_step();
-        //test_visibility_line_cost();
+        ask_for_ijk();
+        drawShortestSplit = true;
+        redraw = true;
         break;
     case Qt::Key_V :
         if ( only_plot_enabled == false ) {
@@ -637,6 +640,20 @@ void Viewer::test_visibility_line_cost() {
     o3 = rand() % map_size;
     o4 = rand() % map_size;
     //int c = _vis->get_visibility_line_cost(o1,o2,o3,o4);
+}
+
+void Viewer::ask_for_ijk()
+{
+    std::cin >> vis_graph_i;
+    std::cin >> vis_graph_j;
+    std::cin >> vis_graph_k;
+    double cost1, cost2;
+    int split_point_index;
+    split_point_list = _pol->shortest_split_costs(
+        vis_graph_i,
+        vis_graph_j,
+        vis_graph_k,
+        cost1, cost2, split_point_index);
 }
 
 void Viewer::build_graph_from_sequence() 
@@ -2191,6 +2208,26 @@ void Viewer::drawVisibilityPolygon()
     );
 }
 
+void Viewer::draw_shortest_split()
+{
+    std::list<polygonization::KERNEL::Segment_2>::iterator split_it;
+    split_it = split_point_list.begin();
+    glLineWidth(6.0);
+    glColor3f(1.0, 1.0, 0.0);
+    while ( split_it != split_point_list.end() ) {
+        drawSegment( *split_it, this->get_max_height_for_draw() );
+        split_it++;
+    }
+
+    glLineWidth(4.0);
+    glColor3f(0.0, 1.0, 0.0);
+    drawPolygonizationSegment(_pol->master_polygon->edge(vis_graph_i)); 
+    drawPolygonizationSegment(_pol->master_polygon->edge(vis_graph_j)); 
+    glLineWidth(3.0);
+    glColor3f(0.0, 1.0, 1.0);
+    drawPolygonizationSegment(_pol->master_polygon->edge(vis_graph_k)); 
+}
+
 void Viewer::drawStrategyStep() 
 {
     // draw the proper lines for the step in the strategy
@@ -2231,6 +2268,24 @@ void Viewer::drawStrategyStep()
         }   
         i2++;
     }
+}
+
+void Viewer::drawPolygonizationSegment(polygonization::Segment s) 
+{
+    std::list<int>::iterator it;
+    double height = this->get_max_height() / 1000.0 + get_max_height_for_draw();
+    double wx,wy,w2x,w2y;
+    int gx = ceil( CGAL::to_double(s.source().x())); 
+    int gy = ceil( CGAL::to_double(s.source().y()));
+    int g2x = ceil(CGAL::to_double(s.target().x()));
+    int g2y = ceil(CGAL::to_double(s.target().y()));
+    _map->grid2world(wx,wy,gx,gy);
+    _map->grid2world(w2x,w2y,g2x,g2y);
+    drawSphere(0.1,wx,wy,height);
+    glBegin(GL_LINES);
+     glVertex3f(wx,wy, height);
+     glVertex3f(w2x,w2y, height);
+    glEnd();
 }
 
 void Viewer::drawSegment(lineclear::Segment s, double add_ground) {
