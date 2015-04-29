@@ -80,8 +80,7 @@ namespace polygonization {
         
         KERNEL::Point_2 get_point_of_segment_on_segment( KERNEL::Segment_2 s, int k, bool& success ); 
         
-        
-        void update_seg_to_seg(int i, int j,KERNEL::Segment_2 s, double d);
+        void update_seg_to_seg(int i, int j,KERNEL::Segment_2 s, double d, bool recall = true);
         
         void set_edges_type_1_to_infty(int i,int j);
         void reset_edges_type_1_from_infty();
@@ -168,6 +167,9 @@ namespace polygonization {
         
         bool
         is_sequence_split(int i, int j, int k);
+        bool
+        is_sequential(int i, int j);
+        
         
         
         void process_visibility_polygon(

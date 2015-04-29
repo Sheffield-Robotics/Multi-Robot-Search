@@ -33,3 +33,8 @@ do for [file in list] {
     i = i + 1
     pause 0.5
 }
+
+plot 'test_44_47_45.txt' every ::1 using 1:2 with lines
+plot 'test_205_3_0.txt' every ::1 using 1:2 with lines
+
+test_205_3_0
