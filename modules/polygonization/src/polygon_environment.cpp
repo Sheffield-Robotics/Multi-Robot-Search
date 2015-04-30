@@ -548,11 +548,14 @@ Polygon_Environment::is_sequential(int i, int j)
     return false;
 }
 
-
+/*
+ * pick a point on segment k, between block line of i,k and j,k
+ */
 std::list<KERNEL::Segment_2>
-    Polygon_Environment::shortest_split_costs(int i, int j, int k, double& cost1, double& cost2, int& split_point_index) 
+Polygon_Environment::shortest_split_costs(
+    int i, int j, int k, double& cost1, double& cost2, int& split_point_index) 
 {
-    // pick a point on segment k, between block line of i,k and j,k
+    
     if ( DEBUG_POLYGON_ENVIRONMENT >= 2 ) {
         M_INFO1("\n shortest_split_costs %d %d %d\n",i,j,k);
     }
