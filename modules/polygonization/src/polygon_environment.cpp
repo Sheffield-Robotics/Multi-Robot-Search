@@ -1023,7 +1023,7 @@ Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
         if ( i < master_polygon->size() && j < master_polygon->size() )
             set_path_cache(i,j,segment_list, final_dist);
         if ( DEBUG_POLYGON_ENVIRONMENT >= 2 )
-            M_INFO2("final distance of %f\n",final_dist);
+            M_INFO2("final distance (directly visible)%f\n",final_dist);
         return segment_list;
     } else {
         if ( DEBUG_POLYGON_ENVIRONMENT >= 2 )
