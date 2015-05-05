@@ -530,19 +530,23 @@ bool
 Polygon_Environment::is_sequence_split(int i, int j, int k)
 {
     //  check if k is in the middle between i and j (or between j and i)
-    if ( get_next_index(i) == k && get_next_index(k) == j) {
+    if ( is_sequential(i,k) && is_sequential(j,k) ) {
         return true;
-    } else if ( get_next_index(j) == k && get_next_index(k) == i) {
-        return true;
-    } else {
-        return false;
     }
+    return false;
+//    if ( get_next_index(i) == k && get_next_index(k) == j) {
+//         return true;
+//     } else if ( get_next_index(j) == k && get_next_index(k) == i) {
+//         return true;
+//     } else {
+//         return false;
+//     }
 }
 
 bool
 Polygon_Environment::is_sequential(int i, int j)
 {
-    if ( get_next_index(i) == j || get_next_index(j) == i) {
+    if ( get_next_index(i) == j || get_next_index(j) == i ) {
         return true;
     }
     return false;
@@ -555,17 +559,15 @@ std::list<KERNEL::Segment_2>
 Polygon_Environment::shortest_split_costs(
     int i, int j, int k, double& cost1, double& cost2, int& split_point_index) 
 {
-    
     if ( DEBUG_POLYGON_ENVIRONMENT >= 2 ) {
         M_INFO1("\n shortest_split_costs %d %d %d\n",i,j,k);
     }
     
-    if ( is_sequence_split(i,j,k) ) {
-        M_INFO1("     indices are sequential  \n");
+    if ( is_sequential(i,k) && is_sequential(j,k) ) {
+        M_INFO1("     all indices are sequential  \n");
         int smallest, largest;
         smallest = ( i < k ) ? i : j;
         largest = ( i < k ) ? j : i;
-
         KERNEL::Orientation o1 = 
                 CGAL::orientation( 
                     master_polygon->vertex(smallest), 
@@ -586,6 +588,27 @@ Polygon_Environment::shortest_split_costs(
             return_this.push_back(  master_polygon->edge(k) );
             return return_this;
         }          
+    } else if ( is_sequential(i,k) || is_sequential(j,k) ) {
+        M_INFO1("     two indices are sequential  \n");
+        
+        // take the common endpoint of sequential segments/edges
+        int seque_index = is_sequential(i,k) ? i : j;
+        int other_index = (seque_index == i) ? j : i;
+        KERNEL::Point_2 common_p;
+        if ( seque_index < k ) {
+            common_p = master_polygon->vertex(k);
+        } else {
+            common_p = master_polygon->vertex(seque_index);
+        }
+        double cost;
+        std::list<KERNEL::Segment_2> return_this;
+        return_this = get_shortest_path( common_p, other_index, k, cost );
+        if ( i == seque_index ) {
+            cost1 = 0; cost2 = cost; split_point_index = return_this.size()-1;
+        } else {
+            cost2 = 0; cost1 = cost; split_point_index = 0;
+        }
+        return return_this;
     }
     
     std::list<KERNEL::Segment_2> list_i_k, list_j_k;
@@ -806,14 +829,15 @@ Polygon_Environment::process_visibility_polygon(
                 v_i_index, segment_index_next);
         }
                 
-        bool in_air = !is_sequential(v_i_index,segment_index_next);
+        bool in_air = !is_sequential(v_i_index,segment_index_next) 
+            && v_i_index != segment_index_next;
         
         if ( v_i_index < 0 )
             return;
-         if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
-             M_INFO1("     ... found segment index for v_i %d \n",v_i_index);
-             M_INFO1("    Finding closest, v to visibility polygon segment\n");
-         }
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+            M_INFO1("     ... found segment index for v_i %d \n",v_i_index);
+            M_INFO1("    Finding closest, v to visibility polygon segment\n");
+        }
         
         KERNEL::Point_2 closest_p;
         double dis;
@@ -865,6 +889,53 @@ Polygon_Environment::process_visibility_polygon(
                     );
                 //M_INFO3("visi poly vertex v_i_is_reflexive i=%d, seg_ind=%d \n",
                 //    i,v_i_index);
+            }
+        }
+        if ( special_run && in_air ) {
+            // we have a case not covered in the seg graph 
+            // need to discover when landing on v_i_index collinear
+            // to an edge
+            // we know whether the endpoints of the visibility edge
+            // is on an endpoint of an edge or not 
+            // and we know the indices of the endpoints 
+            
+            // discovered indices in the visibility polygon are 
+            // always increasing due to a clockwise ordering (within)
+            // the circular order i.e 6,7,8, 4, 5 works
+            // but 6,7,8,4,5,3 does not 
+            
+            v_i_index = endpoint_segment_index;
+            segment_index_next = endpoint_segment_index_next;
+            if ( endpoint_segment_index_next != -1 ) {
+                // landed through air on an endpoint 
+                int other_edge_index = endpoint_segment_index_next-1;
+                fix_index(other_edge_index);
+                // test if the previous segment is parallel to edge
+                double sqrd_d = CGAL::to_double(CGAL::squared_distance( 
+                    master_polygon->vertex(other_edge_index),
+                    KERNEL::Segment_2(v_i,v_next)
+                    ));
+                if ( sqrd_d < _visi_epsilon*_visi_epsilon ) {
+                    if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+                        M_INFO1(" Pretty close %f  \n",sqrd_d);
+                    }
+                    // need to add a 
+                    KERNEL::Segment_2 seg_to_seg_seg2(
+                        v,
+                        master_polygon->vertex(other_edge_index));
+                    double dis2;
+                    dis2 = sqrt(
+                        CGAL::to_double(seg_to_seg_seg2.squared_length()));
+                    update_seg_to_seg(n_segs, other_edge_index,
+                         seg_to_seg_seg2, dis2);
+                    this->add_edge_to_visibility_graph(v_index, 2,
+                        other_edge_index, 2,
+                        dis2, 
+                        CGAL::to_double(v.x()),CGAL::to_double(v.y()),
+                        CGAL::to_double(seg_to_seg_seg2.target().x()),
+                        CGAL::to_double(seg_to_seg_seg2.target().y())
+                    );
+                }
             }
         }
         
@@ -924,6 +995,34 @@ Polygon_Environment::get_prev_index( int i )
 //    segment_list_path = plan_in_svg(special_v,w,total_path_distance);
 //    this->remove_extra_edges();
 //}
+
+std::list<KERNEL::Segment_2> 
+Polygon_Environment::get_shortest_path(KERNEL::Point_2 v, int j, int k, double& final_dist)
+{
+    // initialization and bookkeeping
+    VisiLibity::Point p(CGAL::to_double(v.x()),CGAL::to_double(v.y()));
+    p.snap_to_boundary_of(*my_environment,_visi_epsilon);
+    p.snap_to_vertices_of(*my_environment,_visi_epsilon);
+    VisiLibity::Visibility_Polygon vis_poly;
+    vis_poly = VisiLibity::Visibility_Polygon(
+        p,*my_environment, _visi_epsilon);
+    int n_segs = seg_vis_graph_type2_vertices.size();    
+    remove_special_vertex_direct_visible();
+    remove_special_vertex_edges();
+    Segment_Visibility_Graph::mygraph_t* g = seg_vis_graph->g;
+    
+    // set up the special vertex for planning
+    (*g)[special_v].p_x = p.x(); (*g)[special_v].p_y = p.y();
+    (*g)[special_v].segment_index = k; 
+   
+    // this adds the right edges between special_v and all others
+    process_visibility_polygon( n_segs, v, vis_poly, true);
+    
+    // now plan paths from v to i,j
+    std::list<KERNEL::Segment_2> l1;
+    l1 = get_shortest_path(n_segs,j, final_dist);
+    return l1;
+}
 
 std::list<KERNEL::Segment_2> 
 Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
@@ -1051,10 +1150,20 @@ Polygon_Environment::plan_in_svg(Segment_Visibility_Graph::vertex v,
         KERNEL::Point_2 p1((*g)[short_e].p_x, (*g)[short_e].p_y);
         KERNEL::Point_2 p2((*g)[short_e].p_x2, (*g)[short_e].p_y2);
         KERNEL::Segment_2 s( p1,p2);
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
+            std::cout << "Adding segment to path " << s << std::endl;
+        }
+            
         segment_list_path.push_back(s); 
         total_path_distance += (*g)[short_e].distance;
         last_v = *spi;
+        if ( s.squared_length() == 0 && segment_list_path.size() != 0 ) {
+            if ( DEBUG_POLYGON_ENVIRONMENT >= 6 )
+                M_INFO2("s.squared_length() == 0 ignoring segment in path \n");
+        } 
     }
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 6 )
+        M_INFO2("segment_list_path.size() %d  \n", segment_list_path.size());
     return segment_list_path;
 }
 

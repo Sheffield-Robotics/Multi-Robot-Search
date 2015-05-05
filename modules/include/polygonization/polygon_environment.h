@@ -96,9 +96,12 @@ namespace polygonization {
         bool is_necessary_block(int i, int j);        
         bool is_necessary_split(int i, int j, int k);
         
+        std::list<KERNEL::Segment_2> 
+        get_shortest_path(KERNEL::Point_2 v, int j, int k, double& final_dist);
         
         std::list<KERNEL::Segment_2>
         get_shortest_path(int i, int j, double& final_dist);
+        
         std::vector< std::vector < std::list<KERNEL::Segment_2> > >     
             *get_shortest_path_cache;
         std::vector< std::vector < double > >     
