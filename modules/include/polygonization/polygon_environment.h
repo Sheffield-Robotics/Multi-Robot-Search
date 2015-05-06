@@ -15,7 +15,8 @@
 #include <list>
 #include <limits>  
 
-#define DEBUG_POLYGON_ENVIRONMENT 6
+#define DEBUG_POLYGON_ENVIRONMENT 1
+#define DEBUG_POLYGON_ENVIRONMENT_PRINT 1
 
 namespace polygonization {
 

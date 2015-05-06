@@ -559,12 +559,13 @@ std::list<KERNEL::Segment_2>
 Polygon_Environment::shortest_split_costs(
     int i, int j, int k, double& cost1, double& cost2, int& split_point_index) 
 {
-    if ( DEBUG_POLYGON_ENVIRONMENT >= 2 ) {
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 1 ) {
         M_INFO1("\n shortest_split_costs %d %d %d\n",i,j,k);
     }
     
     if ( is_sequential(i,k) && is_sequential(j,k) ) {
-        M_INFO1("     all indices are sequential  \n");
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 2 )
+            M_INFO1("     all indices are sequential  \n");
         int smallest, largest;
         smallest = ( i < k ) ? i : j;
         largest = ( i < k ) ? j : i;
@@ -589,7 +590,8 @@ Polygon_Environment::shortest_split_costs(
             return return_this;
         }          
     } else if ( is_sequential(i,k) || is_sequential(j,k) ) {
-        M_INFO1("     two indices are sequential  \n");
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 2 )
+            M_INFO1("     two indices are sequential  \n");
         
         // take the common endpoint of sequential segments/edges
         int seque_index = is_sequential(i,k) ? i : j;
@@ -642,26 +644,39 @@ Polygon_Environment::shortest_split_costs(
     }    
     // interpolate between point_on_k_from_i and point_on_k_from_j
     double step_size = 5;
-    int n_steps = int ( 
-        ceil( sqrt(CGAL::to_double( vec.squared_length() ) ) / step_size)
-            );
+    double search_distance = sqrt(CGAL::to_double( vec.squared_length()));
+    int n_steps = int ( ceil( search_distance ) / step_size );
     if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
         M_INFO3("Number of interpolations steps %d\n",n_steps);
         M_INFO3("Interpolating\n");
     }
+    
+    if ( n_steps == 0 ) {
+        // no search should be done. return what we already know
+        cost1 = final_d_i; cost2 = final_d_j;
+        split_point_index = list_i_k.size();
+        list_i_k.insert(list_i_k.end(),list_j_k.begin(),list_j_k.end());
+        return list_i_k;    
+    }
+    
     double final_d_i2_best = std::numeric_limits<double>::max();
     double final_d_j2_best = std::numeric_limits<double>::max();
     std::list<KERNEL::Segment_2> l1_best;
     
     char fname[200];
     sprintf( fname, "test_%d_%d_%d.txt",i,j,k);
-    std::ofstream out_file(fname, std::ios_base::app);
-    out_file << std::endl;
-    out_file << i << " " << j << " " << k << " " << std::endl;
+    std::ofstream out_file;
+    if ( DEBUG_POLYGON_ENVIRONMENT_PRINT == 1 ) {
+        out_file.open(fname, std::ios_base::app);
+        out_file << std::endl;
+        out_file << i << " " << j << " " << k << " " << std::endl;
+    }
+    
     
     if (n_steps == 0) 
         n_steps = 1;
-    out_file << n_steps << std::endl;
+    if ( DEBUG_POLYGON_ENVIRONMENT_PRINT == 1 ) 
+        out_file << n_steps << std::endl;
     for ( int step =0; step <= n_steps-1; step++ ) 
     {
         KERNEL::Point_2 v;
@@ -680,15 +695,13 @@ Polygon_Environment::shortest_split_costs(
         }
         
         VisiLibity::Point p(CGAL::to_double(v.x()),CGAL::to_double(v.y()));
-        p.snap_to_boundary_of(*my_environment,0.0000001);
-        p.snap_to_vertices_of(*my_environment,0.0000001);
+        p.snap_to_boundary_of(*my_environment,_visi_epsilon);
+        p.snap_to_vertices_of(*my_environment,_visi_epsilon);
         VisiLibity::Visibility_Polygon vis_poly = 
             VisiLibity::Visibility_Polygon(p,*my_environment, _visi_epsilon); 
         int n_segs = seg_vis_graph_type2_vertices.size();
-        
         remove_special_vertex_direct_visible();
         remove_special_vertex_edges();
-
         Segment_Visibility_Graph::mygraph_t* g = seg_vis_graph->g;
         (*g)[special_v].p_x = p.x(); (*g)[special_v].p_y = p.y();
         (*g)[special_v].segment_index = k;
@@ -699,8 +712,10 @@ Polygon_Environment::shortest_split_costs(
         // now plan paths from v to i,j
         double final_d_i2, final_d_j2;
         std::list<KERNEL::Segment_2> l1,l2;
-        l1 = get_shortest_path(n_segs,i, final_d_i2);
+        l1 = get_shortest_path(n_segs,i,final_d_i2);
         l2 = get_shortest_path(n_segs,j,final_d_j2);
+        
+        // prepare the parts to be remembered
         split_point_index = l1.size();
         l1.insert(l1.end(),l2.begin(),l2.end());
         if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
@@ -712,8 +727,13 @@ Polygon_Environment::shortest_split_costs(
             final_d_i2_best = final_d_i2;
             final_d_j2_best = final_d_j2;
             l1_best = l1;
+        } else {
+            // we're getting worse - but we're convex, so no use climbing 
+            // further in this direction
+            break;
         }
-        out_file << step << " " << final_d_i2 + final_d_j2 <<  std::endl;
+        if ( DEBUG_POLYGON_ENVIRONMENT_PRINT == 1 )
+            out_file << step << " " << final_d_i2 + final_d_j2 <<  std::endl;
     }
     
     cost1 = final_d_i2_best;
@@ -1074,10 +1094,10 @@ Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
     
     double shortest_distance = std::numeric_limits<double>::max();
     int n_segs = this->seg_vis_graph_type1_vertices.size();
-    M_INFO2("seg_to_seg_visible->size() %d \n", seg_to_seg_visible->size() );
-    M_INFO2("(*seg_to_seg_visible)[i].size()  %d \n ", (*seg_to_seg_visible)[i].size() );
+    //M_INFO2("seg_to_seg_visible->size() %d \n", seg_to_seg_visible->size() );
+    //M_INFO2("(*seg_to_seg_visible)[i].size()  %d \n ", (*seg_to_seg_visible)[i].size() );
     bool tr = (*seg_to_seg_visible)[i][j];
-    M_INFO2("visible?  %d \n",  tr);
+    //M_INFO2("visible?  %d \n",  tr);
     if ( i < seg_to_seg_visible->size() 
             && j < (*seg_to_seg_visible)[i].size() 
             && (*seg_to_seg_visible)[i][j] ) {
@@ -1086,7 +1106,9 @@ Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
         }
         segment_list.push_back( (*seg_to_seg_segments)[i][j]);
         shortest_distance = (*seg_to_seg_distance)[i][j];
-        M_INFO2("shortest_distance %f \n", shortest_distance);
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 3 ) {
+            M_INFO2("shortest_distance %f \n", shortest_distance);
+        }
     } 
     
     Segment_Visibility_Graph::vertex v, w;
