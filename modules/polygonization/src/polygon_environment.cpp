@@ -672,7 +672,7 @@ Polygon_Environment::shortest_split_costs(
         out_file << i << " " << j << " " << k << " " << std::endl;
     }
     
-    
+    double angle_diff_prev = 0;
     if (n_steps == 0) 
         n_steps = 1;
     if ( DEBUG_POLYGON_ENVIRONMENT_PRINT == 1 ) 
@@ -715,6 +715,45 @@ Polygon_Environment::shortest_split_costs(
         l1 = get_shortest_path(n_segs,i,final_d_i2);
         l2 = get_shortest_path(n_segs,j,final_d_j2);
         
+        KERNEL::Segment_2 s_of_i_to_k = get_segment_to_k(l1,k);
+        KERNEL::Segment_2 s_of_j_to_k = get_segment_to_k(l2,k);
+        double dist1 = sqrt(CGAL::to_double(s_of_i_to_k.squared_length() ) );
+        double dist2 = sqrt(CGAL::to_double(s_of_j_to_k.squared_length() ) );
+        KERNEL::Vector_2 v1 = s_of_i_to_k.to_vector();
+        KERNEL::Vector_2 v2 = s_of_j_to_k.to_vector();
+        std::cout << " s_of_i_to_k " << s_of_i_to_k << std::endl;
+        std::cout << " s_of_j_to_k " << s_of_j_to_k << std::endl;
+        std::cout << " v1 " << v1 << std::endl;
+        std::cout << " v2 " << v2 << std::endl;
+        std::cout << " vec " << vec << std::endl;
+        double dotp1;
+        double dotp2;
+        if ( dist2 != 0 && dist1 != 0 ) {
+            dotp1 = CGAL::to_double( vec*v1 ) / (dist1*search_distance);
+            dotp2 = CGAL::to_double( vec*v2 ) / (dist2*search_distance);    
+        }
+        
+        std::cout << dotp1 << std::endl;
+        std::cout << dotp2 << std::endl;
+        
+        double angle1 = acos( dotp1);
+        double angle2 = acos( dotp2);
+        if ( angle1 > M_PI/2 )
+            angle1 = M_PI - angle1;
+        if ( angle2 > M_PI/2 )
+            angle2 = M_PI - angle2;
+        
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
+            std::cout << " dist1 " << dist1 << std::endl;
+            std::cout << " dist2 " << dist2 << std::endl;
+            std::cout << " angle1 " << angle1 << std::endl;
+            std::cout << " angle2 " << angle2 << std::endl;
+            std::cout << " * " << dist1*cos(angle1) << std::endl;
+            std::cout << " * " << dist2*cos(angle2) << std::endl;
+        }
+        double angle_diff = angle1 - angle2;
+        std::cout << " angle_diff " << angle_diff << std::endl;
+                            
         // prepare the parts to be remembered
         split_point_index = l1.size();
         l1.insert(l1.end(),l2.begin(),l2.end());
@@ -730,8 +769,12 @@ Polygon_Environment::shortest_split_costs(
         } else {
             // we're getting worse - but we're convex, so no use climbing 
             // further in this direction
-            break;
+            if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
+                M_INFO3("Getting worse \n ");
+            }
+            //break;
         }
+        angle_diff_prev = angle_diff;
         if ( DEBUG_POLYGON_ENVIRONMENT_PRINT == 1 )
             out_file << step << " " << final_d_i2 + final_d_j2 <<  std::endl;
     }
@@ -741,6 +784,27 @@ Polygon_Environment::shortest_split_costs(
     out_file.close();
     return l1_best;
 }
+
+KERNEL::Segment_2
+Polygon_Environment::get_segment_to_k(std::list<KERNEL::Segment_2> &l, int k )
+{
+    if ( is_k_in_front(l,k) ) {
+        return l.front();
+    } else {
+        return l.back();
+    }
+}
+
+bool
+Polygon_Environment::is_k_in_front(std::list<KERNEL::Segment_2> &l, int k )
+{
+    bool success = false;
+    get_point_of_segment_on_segment( l.front(), k, success);
+    if ( !success ) {
+        return false;
+    }
+    return true;
+} 
 
 void
 Polygon_Environment::remove_special_vertex_edges() 
@@ -1175,14 +1239,18 @@ Polygon_Environment::plan_in_svg(Segment_Visibility_Graph::vertex v,
         if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
             std::cout << "Adding segment to path " << s << std::endl;
         }
-            
-        segment_list_path.push_back(s); 
-        total_path_distance += (*g)[short_e].distance;
-        last_v = *spi;
         if ( s.squared_length() == 0 && segment_list_path.size() != 0 ) {
-            if ( DEBUG_POLYGON_ENVIRONMENT >= 6 )
+            if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
                 M_INFO2("s.squared_length() == 0 ignoring segment in path \n");
-        } 
+                std::cout << (*g)[short_e].distance << std::endl;
+            }                
+            if ( (*g)[short_e].distance != 0 )
+                M_ERR("ERROR (*g)[short_e].distance not zero\n");
+        } else {
+            segment_list_path.push_back(s); 
+            total_path_distance += (*g)[short_e].distance;
+        }   
+        last_v = *spi;         
     }
     if ( DEBUG_POLYGON_ENVIRONMENT >= 6 )
         M_INFO2("segment_list_path.size() %d  \n", segment_list_path.size());

@@ -15,7 +15,7 @@
 #include <list>
 #include <limits>  
 
-#define DEBUG_POLYGON_ENVIRONMENT 1
+#define DEBUG_POLYGON_ENVIRONMENT 6
 #define DEBUG_POLYGON_ENVIRONMENT_PRINT 1
 
 namespace polygonization {
@@ -133,6 +133,12 @@ namespace polygonization {
         std::list<KERNEL::Segment_2>
         shortest_split_costs(int i, int j, int k, 
             double& cost1, double& cost2, int& split_point_index);
+        
+        KERNEL::Segment_2
+        get_segment_to_k(std::list<KERNEL::Segment_2> &l, int k );
+        
+        bool is_k_in_front(std::list<KERNEL::Segment_2> &l, int k );
+        
         
         void fix_index(int &i) {
             if ( master_polygon->size() <= 0 ) { return; }
