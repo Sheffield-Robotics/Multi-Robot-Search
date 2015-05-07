@@ -79,6 +79,11 @@ namespace polygonization {
         int get_next_index( int i );
         int get_prev_index( int i );
         
+        KERNEL::Point_2 
+        get_point_of_segment_on_segment( 
+            std::list<KERNEL::Segment_2> l, int k );
+        
+        
         KERNEL::Point_2 get_point_of_segment_on_segment( KERNEL::Segment_2 s, int k, bool& success ); 
         
         void update_seg_to_seg(int i, int j,KERNEL::Segment_2 s, double d, bool recall = true);
@@ -134,6 +139,11 @@ namespace polygonization {
         shortest_split_costs(int i, int j, int k, 
             double& cost1, double& cost2, int& split_point_index);
         
+        KERNEL::Point_2
+        find_same_angle_point(
+            KERNEL::Point_2 a1,KERNEL::Point_2 a2, KERNEL::Line_2 l);
+    
+        
         KERNEL::Segment_2
         get_segment_to_k(std::list<KERNEL::Segment_2> &l, int k );
         
@@ -150,6 +160,9 @@ namespace polygonization {
             }
         }
             
+        
+        KERNEL::Point_2
+        closest_point_on_line_to( KERNEL::Line_2 l, KERNEL::Point_2 p );
         
         
         double

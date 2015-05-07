@@ -337,6 +337,22 @@ Polygon_Environment::set_path_cache(int i, int j, std::list<KERNEL::Segment_2> l
 }
 
 KERNEL::Point_2 
+Polygon_Environment::get_point_of_segment_on_segment( 
+    std::list<KERNEL::Segment_2> l, int k ) 
+{
+    bool success = false;
+    KERNEL::Point_2 p 
+        = get_point_of_segment_on_segment( l.front(), k, success);
+    if ( !success ) {
+        p = get_point_of_segment_on_segment( l.back(), k, success);
+    }
+    if (!success) 
+        M_INFO3("ERROR - no point on segment found\n");
+    return p;
+}
+
+
+KERNEL::Point_2 
     Polygon_Environment::get_point_of_segment_on_segment( KERNEL::Segment_2 s, int k, bool& success ) 
 {
     double d;
@@ -617,27 +633,27 @@ Polygon_Environment::shortest_split_costs(
     double final_d_i, final_d_j;
     list_i_k = get_shortest_path(i, k,final_d_i);
     list_j_k = get_shortest_path(j, k,final_d_j);
+
+    
+
     //find point on k
-    bool success = false;
     KERNEL::Point_2 point_on_k_from_i;
-    point_on_k_from_i 
-        = get_point_of_segment_on_segment( list_i_k.front(), k, success);
-    if ( !success ) {
-        point_on_k_from_i 
-            = get_point_of_segment_on_segment( list_i_k.back(), k, success);
-    }
-    if (!success) 
-        M_INFO3("ERROR - no point on segment found\n");
+    point_on_k_from_i = get_point_of_segment_on_segment( list_i_k, k);    
     KERNEL::Point_2 point_on_k_from_j;
-    point_on_k_from_j 
-        = get_point_of_segment_on_segment( list_j_k.front(), k, success);
-    if ( !success ) {
-        point_on_k_from_j 
-            = get_point_of_segment_on_segment( list_j_k.back(), k, success);
-    }
-    if (!success) 
-        M_INFO3("ERROR - no point on segment found\n");
+    point_on_k_from_j = get_point_of_segment_on_segment( list_j_k, k);
+    
+    
     KERNEL::Vector_2 vec(point_on_k_from_i,point_on_k_from_j);
+    KERNEL::Line_2 lin(point_on_k_from_i,point_on_k_from_j);
+    
+    // get points on the last segment
+    KERNEL::Segment_2 s_of_i_to_k = get_segment_to_k(list_i_k,k);
+    KERNEL::Segment_2 s_of_j_to_k = get_segment_to_k(list_j_k,k);
+    // find the point not on k of the segment
+    s_of_i_to_k
+    
+    find_same_angle_point(,lin);
+    
     if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
         std::cout << " point_on_k_from_i  " << point_on_k_from_i << std::endl;
         std::cout << " point_on_k_from_j  " << point_on_k_from_j << std::endl;
@@ -715,6 +731,8 @@ Polygon_Environment::shortest_split_costs(
         l1 = get_shortest_path(n_segs,i,final_d_i2);
         l2 = get_shortest_path(n_segs,j,final_d_j2);
         
+        KERNEL::Point_2 p_of_i_to_k = get_point_of_segment_on_segment(l1,k);
+        KERNEL::Point_2 p_of_j_to_k = get_point_of_segment_on_segment(l2,k);
         KERNEL::Segment_2 s_of_i_to_k = get_segment_to_k(l1,k);
         KERNEL::Segment_2 s_of_j_to_k = get_segment_to_k(l2,k);
         double dist1 = sqrt(CGAL::to_double(s_of_i_to_k.squared_length() ) );
@@ -732,6 +750,8 @@ Polygon_Environment::shortest_split_costs(
             dotp1 = CGAL::to_double( vec*v1 ) / (dist1*search_distance);
             dotp2 = CGAL::to_double( vec*v2 ) / (dist2*search_distance);    
         }
+
+        
         
         std::cout << dotp1 << std::endl;
         std::cout << dotp2 << std::endl;
@@ -753,7 +773,8 @@ Polygon_Environment::shortest_split_costs(
         }
         double angle_diff = angle1 - angle2;
         std::cout << " angle_diff " << angle_diff << std::endl;
-                            
+         
+                                
         // prepare the parts to be remembered
         split_point_index = l1.size();
         l1.insert(l1.end(),l2.begin(),l2.end());
@@ -783,6 +804,36 @@ Polygon_Environment::shortest_split_costs(
     cost2 = final_d_j2_best;
     out_file.close();
     return l1_best;
+}
+
+KERNEL::Point_2
+Polygon_Environment::find_same_angle_point(
+    KERNEL::Point_2 a1,KERNEL::Point_2 a2, KERNEL::Line_2 l)
+{
+    KERNEL::Point_2 b1 = closest_point_on_line_to(l,a1);
+    KERNEL::Point_2 b2 = closest_point_on_line_to(l,a2);
+    KERNEL::Vector_2 v1(a1,b1);
+    KERNEL::Vector_2 v2(a2,b2);
+    KERNEL::Vector_2 v(b1,b2);
+    double hl = 0, hb = 0;
+    bool v1_longer = false;
+    if ( v1.squared_length() > v2.squared_length() ) {
+        hb = sqrt( CGAL::to_double(v2.squared_length()));
+        hl = sqrt( CGAL::to_double(v1.squared_length())) - hb;
+        v1_longer = true;
+    } else {
+        hb = sqrt( CGAL::to_double(v1.squared_length()));
+        hl = sqrt( CGAL::to_double(v2.squared_length())) - hb;
+    }
+    //double x = sqrt( CGAL::to_double(v.squared_length()));
+    double = 1 / ( 2 + hl/hb );
+    KERNEL::Point_2 same_angle_point;
+    if ( v1_longer ) {
+        same_angle_point = b2 - x * v;
+    } else {
+        same_angle_point = b1 + x * v;
+    }
+    return same_angle_point;
 }
 
 KERNEL::Segment_2
@@ -1470,6 +1521,19 @@ Polygon_Environment::vertex_is_reflexive(
 // Answer: not unless we use the original Kernel points
 // fabs(diff_angles(a1,a2)) < _visi_epsilon
     
+KERNEL::Point_2
+Polygon_Environment::closest_point_on_line_to( 
+    KERNEL::Line_2 l, 
+    KERNEL::Point_2 p )
+{
+    CGAL::Object result;
+    //CGAL::cpp11::result_of<KERNEL::Intersect_2(Line_2, Line_2)>::type
+    KERNEL::Line_2 l2 = l.perpendicular(p);
+    result = CGAL::intersection(l,l2);    
+    KERNEL::Point_2 p2;
+    CGAL::assign(p2, result);
+    return p2;
+}
 
 double
 Polygon_Environment::shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,
