@@ -16,7 +16,8 @@
 #include <limits>  
 
 #define DEBUG_POLYGON_ENVIRONMENT 6
-#define DEBUG_POLYGON_ENVIRONMENT_PRINT 1
+#define DEBUG_POLYGON_ENVIRONMENT_PRINT 0
+#define DEBUG_POLYGON_ENVIRONMENT_VISI 6
 
 namespace polygonization {
 
@@ -138,6 +139,12 @@ namespace polygonization {
         std::list<KERNEL::Segment_2>
         shortest_split_costs(int i, int j, int k, 
             double& cost1, double& cost2, int& split_point_index);
+        
+        KERNEL::Point_2 get_other( KERNEL::Point_2 p, KERNEL::Segment_2 s );
+        
+        std::list<KERNEL::Segment_2> 
+        split_at_point(KERNEL::Point_2 v, int i, int j, int k, double& cost1, double& cost2, int& split_point_index, std::list<KERNEL::Segment_2>& ll1 , std::list<KERNEL::Segment_2>& ll2);
+        
         
         KERNEL::Point_2
         find_same_angle_point(

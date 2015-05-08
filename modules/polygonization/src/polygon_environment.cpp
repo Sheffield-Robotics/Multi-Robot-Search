@@ -338,7 +338,7 @@ Polygon_Environment::set_path_cache(int i, int j, std::list<KERNEL::Segment_2> l
 
 KERNEL::Point_2 
 Polygon_Environment::get_point_of_segment_on_segment( 
-    std::list<KERNEL::Segment_2> l, int k ) 
+    std::list<KERNEL::Segment_2> l, int k )
 {
     bool success = false;
     KERNEL::Point_2 p 
@@ -361,8 +361,8 @@ KERNEL::Point_2
         master_polygon->edge(k) ) );
     if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
         M_INFO3("get_point_of_segment_on_segment\n");
-        std::cout << s 
-            << " edge k " << k << "  " 
+        std::cout << " segment s " << s << std::endl
+            << " edge k " << k << " || " 
             << master_polygon->edge(k)  << std::endl;
     }
     if ( d < _epsilon ) {
@@ -568,6 +568,15 @@ Polygon_Environment::is_sequential(int i, int j)
     return false;
 }
 
+KERNEL::Point_2 
+Polygon_Environment::get_other( KERNEL::Point_2 p, KERNEL::Segment_2 s )
+{
+    if ( s.source() == p ) {
+        return s.target();
+    } 
+    return s.source();
+}
+
 /*
  * pick a point on segment k, between block line of i,k and j,k
  */
@@ -629,181 +638,221 @@ Polygon_Environment::shortest_split_costs(
         return return_this;
     }
     
+    // get the shorest path to segments
     std::list<KERNEL::Segment_2> list_i_k, list_j_k;
     double final_d_i, final_d_j;
     list_i_k = get_shortest_path(i, k,final_d_i);
     list_j_k = get_shortest_path(j, k,final_d_j);
-
-    
-
-    //find point on k
-    KERNEL::Point_2 point_on_k_from_i;
-    point_on_k_from_i = get_point_of_segment_on_segment( list_i_k, k);    
-    KERNEL::Point_2 point_on_k_from_j;
-    point_on_k_from_j = get_point_of_segment_on_segment( list_j_k, k);
-    
-    
-    KERNEL::Vector_2 vec(point_on_k_from_i,point_on_k_from_j);
-    KERNEL::Line_2 lin(point_on_k_from_i,point_on_k_from_j);
-    
-    // get points on the last segment
-    KERNEL::Segment_2 s_of_i_to_k = get_segment_to_k(list_i_k,k);
-    KERNEL::Segment_2 s_of_j_to_k = get_segment_to_k(list_j_k,k);
-    // find the point not on k of the segment
-    s_of_i_to_k
-    
-    find_same_angle_point(,lin);
-    
+    KERNEL::Point_2 p_on_k_from_i;
+    p_on_k_from_i = get_point_of_segment_on_segment( list_i_k, k);    
+    KERNEL::Point_2 p_on_k_from_j;
+    p_on_k_from_j = get_point_of_segment_on_segment( list_j_k, k);
     if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
-        std::cout << " point_on_k_from_i  " << point_on_k_from_i << std::endl;
-        std::cout << " point_on_k_from_j  " << point_on_k_from_j << std::endl;
+        std::cout << " p_on_k_from_i  " << p_on_k_from_i << std::endl;
+        std::cout << " p_on_k_from_j  " << p_on_k_from_j << std::endl;
     }    
-    // interpolate between point_on_k_from_i and point_on_k_from_j
-    double step_size = 5;
-    double search_distance = sqrt(CGAL::to_double( vec.squared_length()));
-    int n_steps = int ( ceil( search_distance ) / step_size );
-    if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
-        M_INFO3("Number of interpolations steps %d\n",n_steps);
-        M_INFO3("Interpolating\n");
-    }
     
-    if ( n_steps == 0 ) {
+    if ( CGAL::squared_distance( p_on_k_from_i,p_on_k_from_j) 
+            < _visi_epsilon ) {
         // no search should be done. return what we already know
         cost1 = final_d_i; cost2 = final_d_j;
         split_point_index = list_i_k.size();
         list_i_k.insert(list_i_k.end(),list_j_k.begin(),list_j_k.end());
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
+            M_INFO3("0 steps at cost %f\n",cost1+cost2);
+        }
         return list_i_k;    
     }
     
-    double final_d_i2_best = std::numeric_limits<double>::max();
-    double final_d_j2_best = std::numeric_limits<double>::max();
+    KERNEL::Line_2 lin(master_polygon->edge(k));
     std::list<KERNEL::Segment_2> l1_best;
-    
-    char fname[200];
-    sprintf( fname, "test_%d_%d_%d.txt",i,j,k);
-    std::ofstream out_file;
-    if ( DEBUG_POLYGON_ENVIRONMENT_PRINT == 1 ) {
-        out_file.open(fname, std::ios_base::app);
-        out_file << std::endl;
-        out_file << i << " " << j << " " << k << " " << std::endl;
+    // special case
+    // one of the shortest paths is coming towards and endpoint from
+    // 'behind' segment k, i.e. for the line lin it is on the left
+    KERNEL::Point_2 bi1, bj1;
+    KERNEL::Segment_2 s_ik1 = get_segment_to_k(list_i_k,k);
+    KERNEL::Segment_2 s_jk1 = get_segment_to_k(list_j_k,k);
+    bi1 = get_other(p_on_k_from_i,s_ik1);
+    bj1 = get_other(p_on_k_from_j,s_jk1);
+    if ( lin.has_on_negative_side( bi1 ) 
+      && lin.has_on_negative_side( bj1 ) ) {
+        M_ERR("WOW both are ON NEGATIVE SIDE \n");
+    }
+    if ( lin.has_on_negative_side( bi1 ) ) {
+        M_ERR("bi1 IS ON NEGATIVE SIDE \n");
+        // take that point p_on_k_from_i
+        l1_best = split_at_point(p_on_k_from_i,i,j,k,
+            cost1, cost2, split_point_index,list_i_k,list_j_k);
+        return l1_best;
+    }
+    if ( lin.has_on_negative_side( bj1 ) ) {
+        M_ERR("bj1 IS ON NEGATIVE SIDE \n");
+        // take that point p_on_k_from_j
+        l1_best = split_at_point(p_on_k_from_j,i,j,k,
+            cost1, cost2, split_point_index,list_i_k,list_j_k);
+        return l1_best;
     }
     
-    double angle_diff_prev = 0;
-    if (n_steps == 0) 
-        n_steps = 1;
-    if ( DEBUG_POLYGON_ENVIRONMENT_PRINT == 1 ) 
-        out_file << n_steps << std::endl;
-    for ( int step =0; step <= n_steps-1; step++ ) 
+    double final_d_i2_best = std::numeric_limits<double>::max()/1000;
+    double final_d_j2_best = std::numeric_limits<double>::max()/1000;
+    
+    int split_point_i_best;
+    int tries = 0, max_tries = 10;
+    double improvement = std::numeric_limits<double>::max();
+    KERNEL::Point_2 v(0,0);
+    KERNEL::Point_2 v_prev(0,0);
+    
+    while ( improvement > 0.0001 
+        && tries < max_tries )
     {
-        KERNEL::Point_2 v;
-        double r = (double(step)/double(n_steps-1));
-        if ( n_steps == 1 || step == 0 ) {
-            v = point_on_k_from_i + 0.0001 * vec;
-        } else if ( step == n_steps-1 ){
-            v = point_on_k_from_j - 0.0001 * vec;
-        } else {
-            v = point_on_k_from_i + r * vec;
-        }
+        KERNEL::Point_2 p_ik = get_point_of_segment_on_segment( list_i_k, k);
+        KERNEL::Point_2 p_jk = get_point_of_segment_on_segment( list_j_k, k);
+        KERNEL::Segment_2 s_ik = get_segment_to_k(list_i_k,k);
+        KERNEL::Segment_2 s_jk = get_segment_to_k(list_j_k,k);
+        KERNEL::Point_2 bi, bj;
+        bi = get_other(p_ik,s_ik);
+        bj = get_other(p_jk,s_jk);
+        v = find_same_angle_point(bi,bj,lin);
+        if ( v_prev == v ) 
+            break;
         if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
-                M_INFO1(" Interpolation step %d\n", step);
-                M_INFO1("     Got v %f:%f\n", 
-                    CGAL::to_double(v.x()), CGAL::to_double(v.y()));
+            M_INFO1("     Got v %f:%f\n", 
+                CGAL::to_double(v.x()), CGAL::to_double(v.y()));
         }
         
-        VisiLibity::Point p(CGAL::to_double(v.x()),CGAL::to_double(v.y()));
-        p.snap_to_boundary_of(*my_environment,_visi_epsilon);
-        p.snap_to_vertices_of(*my_environment,_visi_epsilon);
-        VisiLibity::Visibility_Polygon vis_poly = 
-            VisiLibity::Visibility_Polygon(p,*my_environment, _visi_epsilon); 
-        int n_segs = seg_vis_graph_type2_vertices.size();
-        remove_special_vertex_direct_visible();
-        remove_special_vertex_edges();
-        Segment_Visibility_Graph::mygraph_t* g = seg_vis_graph->g;
-        (*g)[special_v].p_x = p.x(); (*g)[special_v].p_y = p.y();
-        (*g)[special_v].segment_index = k;
-        
-        // this adds the right edges between special_v and all others
-        process_visibility_polygon( n_segs, v, vis_poly, true);
-        
-        // now plan paths from v to i,j
+        KERNEL::Point_2 closest_point;
+        double diss = this->shortest_distance_between( 
+            master_polygon->edge(k), v, closest_point );
+        if ( diss > _visi_epsilon ) {
+            M_ERR("// v is not on edge k \n");
+            v = closest_point;            
+            M_ERR("now v is on edge k \n");
+            std::cout << "v " << v << std::endl;
+        }
+            
+        std::list<KERNEL::Segment_2> l1;
         double final_d_i2, final_d_j2;
-        std::list<KERNEL::Segment_2> l1,l2;
-        l1 = get_shortest_path(n_segs,i,final_d_i2);
-        l2 = get_shortest_path(n_segs,j,final_d_j2);
+        l1 = split_at_point(v,i,j,k,
+            final_d_i2, final_d_j2, split_point_i_best,list_i_k,list_j_k);
         
-        KERNEL::Point_2 p_of_i_to_k = get_point_of_segment_on_segment(l1,k);
-        KERNEL::Point_2 p_of_j_to_k = get_point_of_segment_on_segment(l2,k);
-        KERNEL::Segment_2 s_of_i_to_k = get_segment_to_k(l1,k);
-        KERNEL::Segment_2 s_of_j_to_k = get_segment_to_k(l2,k);
-        double dist1 = sqrt(CGAL::to_double(s_of_i_to_k.squared_length() ) );
-        double dist2 = sqrt(CGAL::to_double(s_of_j_to_k.squared_length() ) );
-        KERNEL::Vector_2 v1 = s_of_i_to_k.to_vector();
-        KERNEL::Vector_2 v2 = s_of_j_to_k.to_vector();
-        std::cout << " s_of_i_to_k " << s_of_i_to_k << std::endl;
-        std::cout << " s_of_j_to_k " << s_of_j_to_k << std::endl;
-        std::cout << " v1 " << v1 << std::endl;
-        std::cout << " v2 " << v2 << std::endl;
-        std::cout << " vec " << vec << std::endl;
-        double dotp1;
-        double dotp2;
-        if ( dist2 != 0 && dist1 != 0 ) {
-            dotp1 = CGAL::to_double( vec*v1 ) / (dist1*search_distance);
-            dotp2 = CGAL::to_double( vec*v2 ) / (dist2*search_distance);    
-        }
-
+        M_INFO3("cost at split point: %f+%f=%f\n",final_d_i2,final_d_j2, 
+            final_d_i2+final_d_j2);
         
+        improvement = 
+            final_d_i2_best + final_d_j2_best - final_d_i2 - final_d_j2;
         
-        std::cout << dotp1 << std::endl;
-        std::cout << dotp2 << std::endl;
-        
-        double angle1 = acos( dotp1);
-        double angle2 = acos( dotp2);
-        if ( angle1 > M_PI/2 )
-            angle1 = M_PI - angle1;
-        if ( angle2 > M_PI/2 )
-            angle2 = M_PI - angle2;
-        
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
-            std::cout << " dist1 " << dist1 << std::endl;
-            std::cout << " dist2 " << dist2 << std::endl;
-            std::cout << " angle1 " << angle1 << std::endl;
-            std::cout << " angle2 " << angle2 << std::endl;
-            std::cout << " * " << dist1*cos(angle1) << std::endl;
-            std::cout << " * " << dist2*cos(angle2) << std::endl;
-        }
-        double angle_diff = angle1 - angle2;
-        std::cout << " angle_diff " << angle_diff << std::endl;
-         
-                                
-        // prepare the parts to be remembered
-        split_point_index = l1.size();
-        l1.insert(l1.end(),l2.begin(),l2.end());
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
-            std::cout << " final_d_i2 " << final_d_i2 << std::endl;
-            std::cout << " final_d_j2 " << final_d_j2 << std::endl;
-        }
-        
-        if ( final_d_i2 + final_d_j2 < final_d_i2_best + final_d_j2_best ) {
-            final_d_i2_best = final_d_i2;
+        if ( 0 < improvement ) {
+            final_d_i2_best = final_d_i2; 
             final_d_j2_best = final_d_j2;
-            l1_best = l1;
+            l1_best = l1; 
+            split_point_index = split_point_i_best;
+            if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
+                M_INFO3("improvement %f \n ",improvement);
+                M_INFO3("tries %d \n ",tries);
+            }
         } else {
-            // we're getting worse - but we're convex, so no use climbing 
-            // further in this direction
             if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
                 M_INFO3("Getting worse \n ");
             }
             //break;
         }
-        angle_diff_prev = angle_diff;
-        if ( DEBUG_POLYGON_ENVIRONMENT_PRINT == 1 )
-            out_file << step << " " << final_d_i2 + final_d_j2 <<  std::endl;
+        v_prev = v;
+        tries++;
     }
     
     cost1 = final_d_i2_best;
     cost2 = final_d_j2_best;
-    out_file.close();
     return l1_best;
+}
+
+std::list<KERNEL::Segment_2> 
+    Polygon_Environment::split_at_point(
+        KERNEL::Point_2 v, int i, int j, int k, double& cost1, double& cost2, 
+    int& split_point_index, 
+    std::list<KERNEL::Segment_2>& ll1 , std::list<KERNEL::Segment_2>& ll2 )
+{
+    ll1.clear();
+    ll2.clear();
+    VisiLibity::Point p(CGAL::to_double(v.x()),CGAL::to_double(v.y()));
+    p.snap_to_boundary_of(*my_environment,_visi_epsilon);
+    p.snap_to_vertices_of(*my_environment,_visi_epsilon);
+    VisiLibity::Visibility_Polygon vis_poly = 
+        VisiLibity::Visibility_Polygon(p,*my_environment, _visi_epsilon); 
+    int n_segs = seg_vis_graph_type2_vertices.size();
+    remove_special_vertex_direct_visible();
+    remove_special_vertex_edges();
+    Segment_Visibility_Graph::mygraph_t* g = seg_vis_graph->g;
+    (*g)[special_v].p_x = p.x(); (*g)[special_v].p_y = p.y();
+    (*g)[special_v].segment_index = k;
+    
+    // this adds the right edges between special_v and all others
+    process_visibility_polygon( n_segs, v, vis_poly, true);
+    
+    // now plan paths from v to i,j
+    double final_d_i2, final_d_j2;
+    ll1 = get_shortest_path(n_segs,i,final_d_i2);
+    ll2 = get_shortest_path(n_segs,j,final_d_j2);
+    
+    //KERNEL::Point_2 p_of_i_to_k = get_point_of_segment_on_segment(ll1,k);
+    //KERNEL::Point_2 p_of_j_to_k = get_point_of_segment_on_segment(ll2,k);
+    //KERNEL::Segment_2 s_of_i_to_k = get_segment_to_k(ll1,k);
+    //KERNEL::Segment_2 s_of_j_to_k = get_segment_to_k(ll2,k);
+    //double dist1 = sqrt(CGAL::to_double(s_of_i_to_k.squared_length() ) );
+    //double dist2 = sqrt(CGAL::to_double(s_of_j_to_k.squared_length() ) );
+    //KERNEL::Vector_2 v1 = s_of_i_to_k.to_vector();
+    //KERNEL::Vector_2 v2 = s_of_j_to_k.to_vector();
+    //std::cout << " p_of_i_to_k " << p_of_i_to_k << std::endl;
+    //std::cout << " p_of_j_to_k " << p_of_j_to_k << std::endl;
+    //std::cout << " s_of_i_to_k " << s_of_i_to_k << std::endl;
+    //std::cout << " s_of_j_to_k " << s_of_j_to_k << std::endl;
+    //std::cout << " v1 " << v1 << std::endl;
+    //std::cout << " v2 " << v2 << std::endl;
+    //
+    //KERNEL::Vector_2 vec = master_polygon->edge(k).to_vector();
+    ////KERNEL::Vector_2 vec(p_of_i_to_k,p_of_j_to_k);
+    //
+    //std::cout << " vec " << vec << std::endl;
+    //
+    //double search_distance = sqrt( CGAL::to_double(vec.squared_length()));
+    //double dotp1;
+    //double dotp2;
+    //if ( dist2 != 0 && dist1 != 0 ) {
+    //    dotp1 = CGAL::to_double( vec*v1 ) / (dist1*search_distance);
+    //    dotp2 = CGAL::to_double( vec*v2 ) / (dist2*search_distance);    
+    //}
+    //
+    //std::cout << dotp1 << std::endl;
+    //std::cout << dotp2 << std::endl;
+    //double angle1 = acos( dotp1);
+    //double angle2 = acos( dotp2);
+    //if ( angle1 > M_PI/2 )
+    //    angle1 = M_PI - angle1;
+    //if ( angle2 > M_PI/2 )
+    //    angle2 = M_PI - angle2;
+    //
+    //if ( DEBUG_POLYGON_ENVIRONMENT >= 4 ) {
+    //    std::cout << " dist1 " << dist1 << std::endl;
+    //    std::cout << " dist2 " << dist2 << std::endl;
+    //    std::cout << " angle1 " << angle1 << std::endl;
+    //    std::cout << " angle2 " << angle2 << std::endl;
+    //    std::cout << " * " << dist1*cos(angle1) << std::endl;
+    //    std::cout << " * " << dist2*cos(angle2) << std::endl;
+    //}
+    //double angle_diff = angle1 - angle2;
+    //std::cout << " angle_diff " << angle_diff << std::endl;
+                
+    // prepare the parts to be remembered
+    std::list<KERNEL::Segment_2> l1;
+    l1 = ll1;
+    split_point_index = l1.size();
+    l1.insert(l1.end(),ll2.begin(),ll2.end());
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
+        std::cout << " final_d_i2 " << final_d_i2 << std::endl;
+        std::cout << " final_d_j2 " << final_d_j2 << std::endl;
+    }
+    cost1 = final_d_i2;
+    cost2 = final_d_j2;
+    return l1;
 }
 
 KERNEL::Point_2
@@ -815,6 +864,12 @@ Polygon_Environment::find_same_angle_point(
     KERNEL::Vector_2 v1(a1,b1);
     KERNEL::Vector_2 v2(a2,b2);
     KERNEL::Vector_2 v(b1,b2);
+    std::cout << a1 << std::endl;
+    std::cout << a2 << std::endl;
+    std::cout << b1 << std::endl;
+    std::cout << b2 << std::endl;
+    std::cout << l << std::endl;
+    
     double hl = 0, hb = 0;
     bool v1_longer = false;
     if ( v1.squared_length() > v2.squared_length() ) {
@@ -825,8 +880,11 @@ Polygon_Environment::find_same_angle_point(
         hb = sqrt( CGAL::to_double(v1.squared_length()));
         hl = sqrt( CGAL::to_double(v2.squared_length())) - hb;
     }
-    //double x = sqrt( CGAL::to_double(v.squared_length()));
-    double = 1 / ( 2 + hl/hb );
+    double x;
+    if ( hb == 0 )
+        x = 1 / ( 2 );
+    else 
+        x = 1 / ( 2 + hl/hb );
     KERNEL::Point_2 same_angle_point;
     if ( v1_longer ) {
         same_angle_point = b2 - x * v;
@@ -898,7 +956,7 @@ Polygon_Environment::process_visibility_polygon(
 {
     int n_segs = seg_vis_graph_type2_vertices.size();
     
-    if ( DEBUG_POLYGON_ENVIRONMENT >= 4 )
+    if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 4 )
         M_INFO3("Find the index of point v in visibility polygon\n");
     int v_index_in_visi = -1;
     for ( int i = 0; i < v_poly.n() ; i++) 
@@ -908,7 +966,7 @@ Polygon_Environment::process_visibility_polygon(
     }
     bool v_is_reflexive = false;
     if ( v_index != n_segs ) {
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 4 )
+        if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 4 )
             M_INFO3("Check whether we have a reflexive vertex \n");
         v_is_reflexive = this->vertex_is_reflexive( v_index_in_visi, v_poly );
         (*(this->seg_vis_graph->g))
@@ -916,11 +974,11 @@ Polygon_Environment::process_visibility_polygon(
                 = v_is_reflexive;
     }
     
-    if ( DEBUG_POLYGON_ENVIRONMENT >= 4 )
+    if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 4 )
         M_INFO3("Parsing visibility polygon for vertex-segment %d\n", v_index);
     for ( int i = 0; i < v_poly.n(); i++) 
     {
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 5 )
+        if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 )
             M_INFO1("    \n\nv_i: vertex %d of visi poly\n",i);
         
         int i_next = (i == v_poly.n() - 1) ? 0 : i+1;
@@ -928,21 +986,21 @@ Polygon_Environment::process_visibility_polygon(
         if ( (v_index_in_visi == i || v_index_in_visi == i_next)  
             && v_index != n_segs ) 
         {
-            if ( DEBUG_POLYGON_ENVIRONMENT >= 5 )
+            if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 )
                 M_INFO1("    v_index in visi touched --- CONTINUING \n",i);
             continue;
         }
         
         KERNEL::Point_2 v_i( v_poly[i].x(), v_poly[i].y() );
         KERNEL::Point_2 v_next( v_poly[i_next].x(), v_poly[i_next].y() );
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+        if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 ) {
             std::cout << " Point of visi vertex " << v_i << std::endl;
             std::cout << " Point at end of segment " << v_next << std::endl;
             M_INFO1("     Finding the segment index for visi poly segment\n");
         }
         int endpoint_segment_index = this->is_endpoint(v_i);
         int endpoint_segment_index_next = this->is_endpoint(v_next);
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+        if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 ) {
             M_INFO1("     Endpoint segment indices %d - %d \n", 
                 endpoint_segment_index, endpoint_segment_index_next);
         }
@@ -959,7 +1017,7 @@ Polygon_Environment::process_visibility_polygon(
         } else {
             segment_index_next = endpoint_segment_index_next;
         }
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+        if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 ) {
             M_INFO1("     Final (mid_endpoint) segment indices %d - %d \n", 
                 v_i_index, segment_index_next);
         }
@@ -969,7 +1027,7 @@ Polygon_Environment::process_visibility_polygon(
         
         if ( v_i_index < 0 )
             return;
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+        if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 ) {
             M_INFO1("     ... found segment index for v_i %d \n",v_i_index);
             M_INFO1("    Finding closest, v to visibility polygon segment\n");
         }
@@ -977,7 +1035,7 @@ Polygon_Environment::process_visibility_polygon(
         KERNEL::Point_2 closest_p;
         double dis;
         if ( in_air ) {
-            if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) 
+            if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 ) 
                 M_INFO1("     ... segment is in air \n");
             dis = CGAL::to_double(CGAL::squared_distance(v_i,v));
             closest_p = v_i;
@@ -986,7 +1044,7 @@ Polygon_Environment::process_visibility_polygon(
             dis = this->shortest_distance_between( s, v, closest_p );
         }
         dis = sqrt(dis);
-        if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+        if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 ) {
             M_INFO1("     Closest point at distance %f  \n",dis);
             std::cout << "      Closest point is " << closest_p << std::endl;
             M_INFO1("      ---> Adding edges to seg visi graph...\n");
@@ -1071,18 +1129,47 @@ Polygon_Environment::process_visibility_polygon(
                         CGAL::to_double(seg_to_seg_seg2.target().y())
                     );
                 }
+            } 
+            if ( endpoint_segment_index != -1 ) {
+                // jumped off from a endpoint_segment_index
+                int other_edge_index = endpoint_segment_index+1;
+                fix_index(other_edge_index);
+                double sqrd_d = CGAL::to_double(
+                    CGAL::squared_distance( 
+                        master_polygon->vertex(other_edge_index),
+                        KERNEL::Segment_2(v_i,v_next)
+                    ));
+                if ( sqrd_d < _visi_epsilon*_visi_epsilon ) {
+                    if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+                        M_INFO1(" PPretty close %f  \n",sqrd_d);
+                    }
+                    KERNEL::Segment_2 seg_to_seg_seg2( v,
+                        master_polygon->vertex(other_edge_index));
+                    double dis2 = sqrt(
+                        CGAL::to_double(seg_to_seg_seg2.squared_length()));
+                    update_seg_to_seg(n_segs, other_edge_index,
+                         seg_to_seg_seg2, dis2);
+                    this->add_edge_to_visibility_graph(v_index, 2,
+                        other_edge_index, 2,
+                        dis2, 
+                        CGAL::to_double(v.x()),CGAL::to_double(v.y()),
+                        CGAL::to_double(seg_to_seg_seg2.target().x()),
+                        CGAL::to_double(seg_to_seg_seg2.target().y())
+                    );
+                }
+                
             }
-        }
-        
+        }        
     }
-    //M_INFO2("Done with adding edges to seg visi graph for this vertex\n");
-
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+        M_INFO2("Done with adding edges to seg visi graph \n");
+    }
 }
 
 void
 Polygon_Environment::update_seg_to_seg(int i, int j,KERNEL::Segment_2 s, double d, bool recall )
 {
-    if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+    if ( DEBUG_POLYGON_ENVIRONMENT_VISI >= 5 ) {
         M_INFO1("            update_seg_to_seg %d to %d  \n",i,j);
         std::cout << s << std::endl;
         M_INFO1("            update_seg_to_seg d=%f  \n",d);
@@ -1134,6 +1221,11 @@ Polygon_Environment::get_prev_index( int i )
 std::list<KERNEL::Segment_2> 
 Polygon_Environment::get_shortest_path(KERNEL::Point_2 v, int j, int k, double& final_dist)
 {
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 2 ) {
+        M_INFO2("get_shortest_path %d %d\n",j,k);
+        std::cout << v << std::endl;
+    }
+        
     // initialization and bookkeeping
     VisiLibity::Point p(CGAL::to_double(v.x()),CGAL::to_double(v.y()));
     p.snap_to_boundary_of(*my_environment,_visi_epsilon);
@@ -1539,7 +1631,6 @@ double
 Polygon_Environment::shortest_distance_between( KERNEL::Segment_2 s, KERNEL::Point_2 p,
  KERNEL::Point_2& closest_point )
 {
-    
     //CGAL::squared_distance( s, p);
     
     KERNEL::Point_2 l1Points[] = { s.source(), s.target() };
