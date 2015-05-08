@@ -1101,8 +1101,9 @@ Polygon_Environment::process_visibility_polygon(
             segment_index_next = endpoint_segment_index_next;
             if ( endpoint_segment_index_next != -1 ) {
                 // landed through air on an endpoint 
-                int other_edge_index = endpoint_segment_index_next-1;
-                fix_index(other_edge_index);
+                int other_edge_index =
+                    get_prev_index(endpoint_segment_index_next);
+                
                 // test if the previous segment is parallel to edge
                 double sqrd_d = CGAL::to_double(CGAL::squared_distance( 
                     master_polygon->vertex(other_edge_index),
@@ -1132,8 +1133,7 @@ Polygon_Environment::process_visibility_polygon(
             } 
             if ( endpoint_segment_index != -1 ) {
                 // jumped off from a endpoint_segment_index
-                int other_edge_index = endpoint_segment_index+1;
-                fix_index(other_edge_index);
+                int other_edge_index = get_next_index(endpoint_segment_index);
                 double sqrd_d = CGAL::to_double(
                     CGAL::squared_distance( 
                         master_polygon->vertex(other_edge_index),
