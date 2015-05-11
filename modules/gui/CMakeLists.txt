@@ -7,7 +7,6 @@ file(GLOB gui_SRC "src/*.cpp")
 #set(Boost_USE_STATIC_LIBS OFF) 
 #set(Boost_USE_MULTITHREADED ON)  
 #set(Boost_USE_STATIC_RUNTIME OFF) 
-
 #find_package(GLU)
 find_package(GLUT)
 find_package(OpenGL)

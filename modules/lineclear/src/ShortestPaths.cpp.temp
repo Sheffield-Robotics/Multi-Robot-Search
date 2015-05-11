@@ -1,8 +1,0 @@
-#include 
-
-typedef CGAL::Cartesian<CGAL::Gmpq> Kernel;
-typedef CGAL::Arr_segment_traits_2<Kernel> Traits_2;
-typedef CGAL::Vertex_visibility_graph_2<Traits_2> Vis_graph; 
-typedef CGAL::Polygon_2<Kernel> Polygon_2;
-
-Vis_graph graph(polygon.vertices_begin(), polygon.vertices_end());
