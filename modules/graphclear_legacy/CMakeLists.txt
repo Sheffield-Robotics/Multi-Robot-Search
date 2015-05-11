@@ -38,7 +38,6 @@ include_directories( ${LIBCONFIGPP_INCLUDE_DIR} )
 find_package( GSL REQUIRED )
 include_directories( ${GSL_INCLUDE_DIR} )
 
-
 include_directories(../include)
 
 #include_directories(../3rdparty/gslwrap)

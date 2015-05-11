@@ -3,7 +3,6 @@
 #include "lineclear/ChoiceTree.h"
 
 #include <iostream>
-
 #include <QtGui>
 #include <CGAL/Qt/GraphicsViewNavigation.h>
 #include <QLineF>

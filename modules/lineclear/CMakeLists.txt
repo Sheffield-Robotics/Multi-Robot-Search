@@ -23,11 +23,13 @@ add_definitions(${QT_DEFINITIONS})
 #INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
 
-add_executable(lineclear_gui_exe ${lineclear_SRC} ${gui_HEADERS} ${gui_HEADERS_MOC} ${gui_FORMS_HEADERS})
+add_executable(lineclear_gui_exe ${lineclear_SRC})
 target_link_libraries(lineclear_gui_exe 
-    utilities hungarian heightmap planner polygonization 
-    lineclear
+    utilities polygonization lineclear
     ${QT_LIBRARIES}
+    ${GEOTIFF_LIBRARY}
+    ${TIFF_LIBRARIES}
+    ${QGLVIEWER_LIBRARY}
     ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES}
     ${Boost_LIBRARIES}
     ${YAMLCPP_LIBRARY})

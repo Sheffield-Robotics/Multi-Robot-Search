@@ -12,7 +12,6 @@
 #define ENVIRONMENT_DEBUG 1
 
 #include "lineclear/CGALTypes.h"
-#include "DEFINES.h"
 #include "utilities/paramfile.h"
 
 namespace lineclear 
