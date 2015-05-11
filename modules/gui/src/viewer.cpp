@@ -539,11 +539,12 @@ void Viewer::init_pol() {
            _map->classifyMap();
            classifiedMap = true;
         }
-        M_INFO3("Initializing Polygonization\n");
         // TODO: insert parameter here for a and epsilon 
-        double a = Params::g_alpha;
-        double e = Params::g_epsilon;
-        int gx = Params::g_startx, gy = Params::g_starty;
+        double a = yaml_param["alpha"].as<float>();
+        double e = yaml_param["epsilon"].as<float>();
+        int gx = yaml_param["startx"].as<int>();
+        int gy = yaml_param["starty"].as<int>();
+        M_INFO3("Initializing Polygonization at %d %d with epsilon=%f and alpha=%f\n",gx,gy,e,a);
         _pol = polygonization::polygonize_heightmap( _map, a, e, gx, gy, 
             _lastMapPureFileName );
     }
@@ -1006,7 +1007,7 @@ bool Viewer::loadHeightmapFromTIFF(const string &filename)
     }
     else {
         M_ERR("ERROR: Cannot find mask file %s. Activating classifier computation.\n",maskFile.c_str());
-        Params::g_classify_from_mask_only = 0;
+        yaml_param["classify_from_mask_only"] = 0;
     }
 
     // Load into height map
@@ -1455,7 +1456,7 @@ void Viewer::drawAllTrajectories() {
                 glColor3f(1.0, 0.0, 0.0);
             }
             double th_inv = all_uav_poses[t-1][uav].th;
-            if ( Params::g_motion_cost_computation == 2 ) {
+            if ( yaml_param["motion_cost_computation"].as<int>() == 2 ) {
                 double L,r_c,phi_g;
                 all_uav_poses[t-1][uav].getArcParams(all_uav_poses[t][uav], L, r_c, phi_g);
                 drawArc(wx, wy, th_inv , r_c, L, phi_g, false, 1);
@@ -1737,7 +1738,7 @@ void Viewer::apply_hungarian() {
         
         M_INFO1_D(DEBUG_HUNGARIAN,1," Initializing uav poses\n");
         for ( int p = 0; p < numAgents; p++ ) {
-            all_uav_poses[i][p].tv = Params::g_UAV_max_velocity;
+            all_uav_poses[i][p].tv = yaml_param["UAV_max_velocity"].as<float>();
         }
         
         M_INFO1_D(DEBUG_HUNGARIAN,1," Computing cost values\n");
@@ -1758,9 +1759,10 @@ void Viewer::apply_hungarian() {
                 new_poses.push_back(sample_point);
                 for ( int p = 0; p < numAgents; p++ ) {
                     double c = 0;
-                    if ( Params::g_motion_cost_computation == 1 ) {
+                    
+                    if ( yaml_param["motion_cost_computation"].as<int>() == 1 ) {
                         c = sample_point.getDistToPoint(all_uav_poses[i][p]);
-                    } else if ( Params::g_motion_cost_computation == 2 ) {
+                    } else if ( yaml_param["motion_cost_computation"].as<int>() == 2 ) {
                         c = all_uav_poses[i][p].getCostToPoint( sample_point );
                     }
                     //TODO: how do we make sure that only new locations
@@ -1804,7 +1806,7 @@ void Viewer::apply_hungarian() {
                             << std::endl;
                     }
                     all_uav_poses[i+1][p] = new_poses[d];
-                    if ( Params::g_motion_cost_computation == 2 ) {
+                    if ( yaml_param["motion_cost_computation"].as<int>() == 2 ) {
                         all_uav_poses[i][p].getCostToPoint(
                             all_uav_poses[i+1][p] );
                     }
@@ -1817,7 +1819,7 @@ void Viewer::apply_hungarian() {
                             all_uav_poses[i][p]);
                     double the_time = costs[p][d];
                     if ( sqrt_dist >= 4 ) {
-                        if ( Params::g_motion_cost_computation == 1 ) {
+                        if ( yaml_param["motion_cost_computation"].as<int>() == 1 ) {
                             all_uav_poses[i+1][p].th = 
                                 norm_angle(atan2(yline,xline));
                         }

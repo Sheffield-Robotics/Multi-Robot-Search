@@ -1,0 +1,101 @@
+---
+classify_everything_as_flat_ground: 0
+# This option if true causes the classifier to ignore any slope
+classify_everything_as_flat_ground: 0
+# This option on produces a classification from the mask file only (red areas)
+classify_from_mask_only: 1
+# any wall at a larger height than this is classified as non-traversable
+min_wall_height: 2.5
+# tiny walls lower than this are not ramps but flat ground
+flat_height: 0.3
+min_ramp_angle: 5.0
+max_ramp_angle: 899.0
+height_decrement_per_update: 0.1
+max_cell_age: 500.0
+clamped_rescale_length: 40.0
+clamped_rescale: 0
+################################################################################
+# Polygonization
+################################################################################
+# parameters for the poligonization, i.e. the alpha for the alpha shahpe
+# and the epsilon for the line simplification
+epsilon: 10
+alpha: 10
+blow_up_obstacles: 1
+# start positions in the grid to determine the connected traversable area
+startx: 165
+starty: 80
+# minimum area for a polygon to be add to the master polygon (in pix^2)
+min_polygon_area: 40.0
+construct_master: 1 
+#are we constructing a simply-connected master polygon?
+# samples the uav costs for every single segment
+# runs too slow, cannot be used at this point
+compute_UAV_cost_everywhere: 0
+distance_sum_cutoff: 400
+# the saved file stores the cost in terms of grid distances
+# the new sensing range loads the file and puts in the proper sensing range
+use_new_sensing_range: 0
+# number of times the random samplign is applied to one line
+resample_UAV_times: 10
+only_use_best_cut_sequence: 0
+# the type of line sampling that leads to updated cost and trajectories
+visibility_line_sampling_type: 1
+#type of method used for sampling: 1= visibility optimization, 2=random with cost bias, 3=purely random
+visibility_line_sampling_type_method: 1
+# type of method used to compute the costs betweent two navpoint
+# 1 = sqr distance
+# 2 = elaborate cost function with navpoint
+motion_cost_computation: 1
+#in units/s (usually m/s or grid cells per second)
+UAV_max_velocity: 1
+# in grid distances
+trajectory_discretization: 20.0
+use_poly_environment_costs: 1
+range_for_cost: 1
+################################################################################
+# Scheduling
+################################################################################
+use_compressed_strategy: 1
+show_visibility_during_schedule: 1
+num_spanning_trees: 10000000
+bias_spanning_trees: 1
+compute_exhaustive_spanning_trees: 0
+compute_shady_edges: 0
+generate_regular_instead_of_sparse_edges: 0
+################################################################################
+# Visibility
+################################################################################
+# Set this to '0' for squares instead of circles, which is faster
+use_circular_fov: 1
+# Set this to 1 for improved sampling method
+use_improved_sampling: 0
+# Define here the min area needed to create a vertex (smaller areas are ignored)
+improved_sampling_min_area_size: 120
+improved_sampling_down_level_search_width: 4
+pursuer_height: 6.0
+target_height: 0.20
+pursuer_range: 4.2 
+# The range of the pursuer in m -  0.8391*height at 80deg ang
+# or height*0.7002
+use_shrubs: 1 
+# Set this to 1 for considering shrubs marked in the mask file
+shrub_height: 5.0
+# Height of all shrub
+# this option basically removes the
+# idea of shady edges. If on boundaries,
+# are always non-overlapping
+use_only_one_region_per_pixel: 1
+# this option regulates the filtering of
+# small islands (fizzles) in the visibility sets
+min_size_for_polygon_at_vertex: 100
+# whether we will cache visibility sets
+use_visibility_cache: 0
+# if neg_value_fraction == 1, then all cells need to be shrubs
+# to lead to a shrub on the top (same for trav and closed)
+# if two, only 1/2 need to be used
+neg_value_fraction: 2
+################################################################################# Gui drawing
+################################################################################
+use_multiple_agent_colors: 0
+draw_large_agents: 0
