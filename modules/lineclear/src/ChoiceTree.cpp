@@ -38,6 +38,8 @@ void ChoiceTree::init_choice_tree() {
     double range = yaml_param["range_for_cost"].as<float>();
     // poly_costs are derived directly from the polygon environment and not _e
     int use_poly_costs = yaml_param["use_poly_environment_costs"].as<int>();
+    int fully_skipped = 0;
+    int skipped = 0, not_skipped = 0;
     for (int k = 1; k < _n; ++k ) {
         _choiceSetMatrix[k] = new ChoiceSet*[_n+1];
         _cost_updated[k] = new bool*[_n+1];
@@ -60,6 +62,7 @@ void ChoiceTree::init_choice_tree() {
             _choiceSetMatrix[k][i]->set_b(b);
             M_INFO1_D(DEBUG_CHOICETREE,2,"Block cost %d \n ",b);
             if ( b == -1 ) {
+                fully_skipped++;
                 _choiceSetMatrix[k][i]->set_all_c(-1);
             }
             else {
@@ -75,8 +78,10 @@ void ChoiceTree::init_choice_tree() {
                             std::cout << "   k=" << k << "   i=" << i 
                                 << "  j=" << j << " ";
                             c = _pol_env->get_split_cost(i-1, i+k, o, range);  
+                            not_skipped++;
                         } else {
                             std::cout << "  skipped ";
+                            skipped++;
                         }
                         M_INFO2_D(DEBUG_CHOICETREE,3,"c=%d \n ",c);
                         _choiceSetMatrix[k][i]->set_c_at(j,c);
@@ -89,6 +94,10 @@ void ChoiceTree::init_choice_tree() {
             }
         }
     }
+    std::cout << "fully_skipped " << fully_skipped << std::endl;
+    std::cout << "out of " << _n*_n << std::endl;
+    std::cout << "skipped " << skipped << std::endl;
+    std::cout << "not skipped " << not_skipped << std::endl;
     std::cout << "Finished cost assignment --- Processing... " << std::endl;
     this->process_all_sets();
 }
@@ -1078,6 +1087,7 @@ void ChoiceTree::process_set( int i, int k) {
         std::cout << std::endl;
     }
     // TODO: instead of best cut sequence take many
+    // Is this TODO still relevant?
     
     ChoiceSet *cs = this->get_choice_set_at(i,k);
     //CutSequence* best_cs = NULL;

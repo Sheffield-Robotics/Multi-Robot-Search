@@ -2,7 +2,6 @@
 #include "polygonization/voronoi_diagram.h"
 #include "utilities/paramfile.h"
 
-#define DEBUG_POLYGONENVIRONMENT 0
 
 namespace polygonization {
     
@@ -604,7 +603,7 @@ Polygon_Environment::shortest_split_costs(
                     master_polygon->vertex(k),
                     master_polygon->vertex(largest),
                     master_polygon->edge(largest).target());
-        std::cout << o1 << " " << o2 << std::endl;
+        //std::cout << o1 << " " << o2 << std::endl;
         if ( o1 != CGAL::RIGHT_TURN || o2 != CGAL::RIGHT_TURN ) {
             // we can skip the steps below and just return the length of edge k
             cost1 = sqrt( CGAL::to_double( master_polygon->edge(k).squared_length() ) );
@@ -676,17 +675,23 @@ Polygon_Environment::shortest_split_costs(
     bj1 = get_other(p_on_k_from_j,s_jk1);
     if ( lin.has_on_negative_side( bi1 ) 
       && lin.has_on_negative_side( bj1 ) ) {
-        M_ERR("WOW both are ON NEGATIVE SIDE \n");
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 2 ) {
+            M_ERR("WOW both are ON NEGATIVE SIDE \n");
+        }
     }
     if ( lin.has_on_negative_side( bi1 ) ) {
-        M_ERR("bi1 IS ON NEGATIVE SIDE \n");
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 2 ) {
+            M_ERR("bi1 IS ON NEGATIVE SIDE \n");
+        }
         // take that point p_on_k_from_i
         l1_best = split_at_point(p_on_k_from_i,i,j,k,
             cost1, cost2, split_point_index,list_i_k,list_j_k);
         return l1_best;
     }
     if ( lin.has_on_negative_side( bj1 ) ) {
-        M_ERR("bj1 IS ON NEGATIVE SIDE \n");
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 2 ) {
+            M_ERR("bj1 IS ON NEGATIVE SIDE \n");
+        }
         // take that point p_on_k_from_j
         l1_best = split_at_point(p_on_k_from_j,i,j,k,
             cost1, cost2, split_point_index,list_i_k,list_j_k);
@@ -724,10 +729,12 @@ Polygon_Environment::shortest_split_costs(
         double diss = this->shortest_distance_between( 
             master_polygon->edge(k), v, closest_point );
         if ( diss > _visi_epsilon ) {
-            M_ERR("// v is not on edge k \n");
+            if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+                M_ERR("// v is not on edge k \n");
+                std::cout << "v " << v << std::endl;
+                std::cout << "closest_point " << closest_point << std::endl;
+            }
             v = closest_point;            
-            M_ERR("now v is on edge k \n");
-            std::cout << "v " << v << std::endl;
         }
             
         std::list<KERNEL::Segment_2> l1;
@@ -735,8 +742,10 @@ Polygon_Environment::shortest_split_costs(
         l1 = split_at_point(v,i,j,k,
             final_d_i2, final_d_j2, split_point_i_best,list_i_k,list_j_k);
         
-        M_INFO3("cost at split point: %f+%f=%f\n",final_d_i2,final_d_j2, 
-            final_d_i2+final_d_j2);
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+            M_INFO3("cost at split point: %f+%f=%f\n",final_d_i2,final_d_j2, 
+                final_d_i2+final_d_j2);
+        }
         
         improvement = 
             final_d_i2_best + final_d_j2_best - final_d_i2 - final_d_j2;
@@ -864,11 +873,11 @@ Polygon_Environment::find_same_angle_point(
     KERNEL::Vector_2 v1(a1,b1);
     KERNEL::Vector_2 v2(a2,b2);
     KERNEL::Vector_2 v(b1,b2);
-    std::cout << a1 << std::endl;
-    std::cout << a2 << std::endl;
-    std::cout << b1 << std::endl;
-    std::cout << b2 << std::endl;
-    std::cout << l << std::endl;
+    //std::cout << a1 << std::endl;
+    //std::cout << a2 << std::endl;
+    //std::cout << b1 << std::endl;
+    //std::cout << b2 << std::endl;
+    //std::cout << l << std::endl;
     
     double hl = 0, hb = 0;
     bool v1_longer = false;

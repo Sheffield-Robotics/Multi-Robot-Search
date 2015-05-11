@@ -51,6 +51,8 @@ motion_cost_computation: 1
 UAV_max_velocity: 1
 # in grid distances
 trajectory_discretization: 20.0
+use_poly_environment_costs: 1
+range_for_cost: 1
 ################################################################################
 # Scheduling
 ################################################################################
