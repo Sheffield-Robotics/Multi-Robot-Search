@@ -1,0 +1,37 @@
+Geotiff_Information:
+   Version: 1
+   Key_Revision: 1.0
+   Tagged_Information:
+      ModelTiepointTag (2,3):
+         0                0                0                
+         602099.7         4480100.7        0                
+      ModelPixelScaleTag (1,3):
+         0.01                0.01                0.01
+      End_Of_Tags.
+   Keyed_Information:
+      GTModelTypeGeoKey (Short,1): ModelTypeProjected
+      GTRasterTypeGeoKey (Short,1): RasterPixelIsArea
+      ProjectedCSTypeGeoKey (Short,1): PCS_WGS84_UTM_zone_17N
+      End_Of_Keys.
+   End_Of_Geotiff.
+
+PCS = 32617 (WGS 84 / UTM zone 17N)
+Projection = 16017 (UTM zone 17N)
+Projection Method: CT_TransverseMercator
+   ProjNatOriginLatGeoKey: 0.000000 (  0d 0' 0.00"N)
+   ProjNatOriginLongGeoKey: -81.000000 ( 81d 0' 0.00"W)
+   ProjScaleAtNatOriginGeoKey: 0.999600
+   ProjFalseEastingGeoKey: 500000.000000 m
+   ProjFalseNorthingGeoKey: 0.000000 m
+GCS: 4326/WGS 84
+Datum: 6326/World Geodetic System 1984
+Ellipsoid: 7030/WGS 84 (6378137.00,6356752.31)
+Prime Meridian: 8901/Greenwich (0.000000/  0d 0' 0.00"E)
+Projection Linear Units: 9001/metre (1.000000m)
+
+Corner Coordinates:
+Upper Left    (  602099.700, 4480100.700)  ( 79d47'44.48"W, 40d27'55.12"N)
+Lower Left    (  602099.700, 4478598.700)  ( 79d47'45.35"W, 40d27' 6.42"N)
+Upper Right   (  603441.700, 4480100.700)  ( 79d46'47.50"W, 40d27'54.52"N)
+Lower Right   (  603441.700, 4478598.700)  ( 79d46'48.39"W, 40d27' 5.82"N)
+Center        (  602770.700, 4479349.700)  ( 79d47'16.43"W, 40d27'30.47"N)
