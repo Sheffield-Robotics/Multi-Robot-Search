@@ -7,13 +7,6 @@ file(GLOB hungarian_SRC
     "src/*.c"
 )
 
-file(GLOB hungarian_HEADERS
-    "include/*.h"
-    "include/*.hpp"
-)
-
 include_directories(include)
 
 add_library(hungarian ${hungarian_SRC})
-
-message(STATUS "We're done with hungarian.")

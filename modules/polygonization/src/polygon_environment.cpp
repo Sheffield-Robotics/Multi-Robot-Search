@@ -5,9 +5,10 @@
 
 namespace polygonization {
 
-Polygon_Environment::Polygon_Environment(int n) 
+Polygon_Environment::Polygon_Environment(int n ) 
 {
-    
+    _visi_epsilon = 0.00000000001;
+    _epsilon = 10;
     Polygon* polygon = new Polygon;
     CGAL::random_polygon_2(n, std::back_inserter(*polygon), 
         Point_generator(400));
@@ -342,6 +343,14 @@ void
 Polygon_Environment::set_path_cache(int i, int j, std::list<KERNEL::Segment_2> l, double d)
 {
     if ( i > j ) { std::swap(i,j); };
+    if ( DEBUG_POLYGON_ENVIRONMENT <= 6 ) {
+        M_INFO3("Setting path cache %d %d at d=%f",i,j,d);
+        std::list<KERNEL::Segment_2>::iterator it = l.begin();
+        for (; it != l.end(); it++) {
+            std::cout << *it << ' <-->';
+        }
+        std::cout << std::endl;
+    }
     if ( i < get_shortest_path_cache_filled->size() 
         && j < get_shortest_path_cache_filled->size() ) {
         (*get_shortest_path_cache_filled)[i][j] = true;   
@@ -355,14 +364,23 @@ KERNEL::Point_2
 Polygon_Environment::get_point_of_segment_on_segment( 
     std::list<KERNEL::Segment_2> l, int k )
 {
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
+        M_INFO1("get_point_of_segment_on_segment seg id %d\n",k);
+    }
     bool success = false;
-    KERNEL::Point_2 p 
-        = get_point_of_segment_on_segment( l.front(), k, success);
+    KERNEL::Point_2 p; 
+    p = get_point_of_segment_on_segment( l.front(), k, success);
     if ( !success ) {
         p = get_point_of_segment_on_segment( l.back(), k, success);
     }
-    if (!success) 
+    if (!success) {
         M_INFO3("ERROR - no point on segment found\n");
+        std::cout << "list front " << l.front() << std::endl;
+        std::cout << "list back " << l.back() << std::endl;
+        std::cout << "segment k " << k 
+            << " is " << master_polygon->edge(k) << std::endl;
+        std::cout << "Point p " << p << std::endl;
+    }   
     return p;
 }
 
@@ -370,6 +388,10 @@ Polygon_Environment::get_point_of_segment_on_segment(
 KERNEL::Point_2 
     Polygon_Environment::get_point_of_segment_on_segment( KERNEL::Segment_2 s, int k, bool& success ) 
 {
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
+        M_INFO1("get_point_of_segment_on_segment seg id %d\n",k);
+        std::cout << "segment s" << s << std::endl;
+    }
     double d;
     d = CGAL::to_double ( 
         CGAL::squared_distance(s.target(), 
@@ -380,19 +402,20 @@ KERNEL::Point_2
             << " edge k " << k << " || " 
             << master_polygon->edge(k)  << std::endl;
     }
-    if ( d < _epsilon ) {
+    if ( d < _visi_epsilon ) {
         success = true;
         return s.target();
     }
     d = CGAL::to_double ( 
         CGAL::squared_distance(s.source(), 
         master_polygon->edge(k) ) );
-    if ( d < _epsilon ) {
+    if ( d < _visi_epsilon ) {
         success = true;
         return s.source();
     }
     success = false;
-    return KERNEL::Point_2(0,0);
+    KERNEL::Point_2 poi(0,0);
+    return poi;
 }
 
 double 
@@ -667,7 +690,9 @@ Polygon_Environment::shortest_split_costs(
         std::cout << " p_on_k_from_j  " << p_on_k_from_j << std::endl;
     }    
     
-    if ( CGAL::squared_distance( p_on_k_from_i,p_on_k_from_j) 
+    if ( p_on_k_from_i == p_on_k_from_j 
+        ||
+        CGAL::squared_distance( p_on_k_from_i,p_on_k_from_j) 
             < _visi_epsilon ) {
         // no search should be done. return what we already know
         cost1 = final_d_i; cost2 = final_d_j;
@@ -935,6 +960,9 @@ Polygon_Environment::is_k_in_front(std::list<KERNEL::Segment_2> &l, int k )
     bool success = false;
     get_point_of_segment_on_segment( l.front(), k, success);
     if ( !success ) {
+        if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
+            M_INFO1("is_k_in_front false\n");
+        }
         return false;
     }
     return true;
@@ -1029,7 +1057,12 @@ Polygon_Environment::process_visibility_polygon(
             M_INFO1("     Endpoint segment indices %d - %d \n", 
                 endpoint_segment_index, endpoint_segment_index_next);
         }
-        
+        if ( endpoint_segment_index == -1
+            && endpoint_segment_index_next == -1) 
+        {
+            
+        }
+         
         int v_i_index;
         if ( endpoint_segment_index == -1  ) {
             v_i_index = get_segment_index_for_point(v_poly[i]);
@@ -1228,27 +1261,12 @@ Polygon_Environment::get_prev_index( int i )
     return (i == 0) ? (*my_environment)[0].n() - 1 : i-1;
 }
 
-//std::list<KERNEL::Segment_2> 
-//Polygon_Environment::get_shortest_path_to_special_v(int i)
-//{
-//    // special vertex special_v
-//    // check k's direct visibility to segments
-//    Segment_Visibility_Graph::vertex w;
-//    w = this->seg_vis_graph_type1_vertices[i];
-//    reset_edges_type_1_from_infty();
-//    set_edges_type_1_to_infty(i,i);
-//    this->add_extra_edges(i,i);
-//    double total_path_distance;
-//    segment_list_path = plan_in_svg(special_v,w,total_path_distance);
-//    this->remove_extra_edges();
-//}
-
 std::list<KERNEL::Segment_2> 
 Polygon_Environment::get_shortest_path(KERNEL::Point_2 v, int j, int k, double& final_dist)
 {
     if ( DEBUG_POLYGON_ENVIRONMENT >= 2 ) {
-        M_INFO2("get_shortest_path %d %d\n",j,k);
-        std::cout << v << std::endl;
+        M_INFO2("get_shortest_path j=%d k=%d\n",j,k);
+        std::cout << "with v=" << v << std::endl;
     }
         
     // initialization and bookkeeping
@@ -1281,7 +1299,8 @@ Polygon_Environment::get_shortest_path(int i, int j, double& final_dist)
 {
     if ( DEBUG_POLYGON_ENVIRONMENT >= 2 )
         M_INFO2("get_shortest_path %d %d\n",i,j);
-    if ( i < master_polygon->size() && j < master_polygon->size() ) {
+    if ( i < master_polygon->size() 
+      && j < master_polygon->size() ) {
         if ( DEBUG_POLYGON_ENVIRONMENT >= 3 )
             M_INFO2("checking cache\n");
         if ( check_path_cache(i,j) ) {

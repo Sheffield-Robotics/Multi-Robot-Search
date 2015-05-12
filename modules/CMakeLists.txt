@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
-set(CMAKE_BUILD_TYPE "Release")
-#set(CMAKE_BUILD_TYPE "Debug")
+#set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Debug")
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "Default is Release")
     set(CMAKE_BUILD_TYPE "Debug")
@@ -16,7 +16,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../cmake/")
 message("Cmake module path" ${CMAKE_MODULE_PATH}) 
 
 if(APPLE)
-    set(CMAKE_CXX_FLAGS "-pipe -Os -I/opt/local/include -arch x86_64") 
+    #set(CMAKE_CXX_FLAGS "-pipe -Os -I/opt/local/include -arch x86_64")
+    set(CMAKE_CXX_FLAGS "-I/opt/local/include -arch x86_64")
     set(CMAKE_EXE_LINKER_FLAGS "-L/opt/local/lib -Wl,-headerpad_max_install_names -arch x86_64 -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib")
 endif()
 

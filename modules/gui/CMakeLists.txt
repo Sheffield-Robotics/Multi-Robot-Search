@@ -39,7 +39,7 @@ find_package( YAMLCPP )
 
 add_library(gui ${gui_SRC} ${gui_HEADERS} ${gui_HEADERS_MOC} ${gui_FORMS_HEADERS})
 
-set(${gui_exec_SRC} src/main.cxx ${gui_SRC})
+set(gui_exec_SRC src/main.cxx ${gui_SRC})
 
 add_executable(gui_exe ${gui_exec_SRC} ${gui_HEADERS} ${gui_HEADERS_MOC} ${gui_FORMS_HEADERS})
 target_link_libraries(gui_exe 
