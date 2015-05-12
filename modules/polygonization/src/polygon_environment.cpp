@@ -343,7 +343,7 @@ void
 Polygon_Environment::set_path_cache(int i, int j, std::list<KERNEL::Segment_2> l, double d)
 {
     if ( i > j ) { std::swap(i,j); };
-    if ( DEBUG_POLYGON_ENVIRONMENT <= 6 ) {
+    if ( DEBUG_POLYGON_ENVIRONMENT >= 6 ) {
         M_INFO3("Setting path cache %d %d at d=%f",i,j,d);
         std::list<KERNEL::Segment_2>::iterator it = l.begin();
         for (; it != l.end(); it++) {
