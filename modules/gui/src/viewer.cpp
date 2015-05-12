@@ -312,14 +312,11 @@ void Viewer::keyPressEvent(QKeyEvent *e)
         init_pol();
         break;
     case Qt::Key_R:
-       {
-
-       }
-       break;
-    case Qt::Key_T:        
-       
-       break;
-    case Qt::Key_Y :
+        init_random_pol();
+        break;
+    case Qt::Key_T:
+        break;
+    case Qt::Key_Y:
         break;
     case Qt::Key_U:
         M_INFO3("Toggle option: drawing Voronoi Diagram \n");
@@ -548,6 +545,11 @@ void Viewer::init_pol() {
         _pol = polygonization::polygonize_heightmap( _map, a, e, gx, gy, 
             _lastMapPureFileName );
     }
+}
+
+void Viewer::init_random_pol()
+{
+    _pol = new polygonization::Polygon_Environment(100);       
 }
 
 void Viewer::init_env() {

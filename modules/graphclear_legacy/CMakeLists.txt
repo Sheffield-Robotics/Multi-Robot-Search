@@ -8,12 +8,9 @@ file(GLOB graphclear_legacy_SRC
 )
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
-message( STATUS "Architecture: ${ARCHITECTURE}" )
 #set(CMAKE_OSX_ARCHITECTURES ${ARCHS_STANDARD_64_BIT})
-#message( STATUS "Architecture: ${ARCHITECTURE}" )
-
+message( STATUS "Architecture: ${ARCHITECTURE}" )
 message("CMAKE_EXE_LINKER_FLAGS" ${CMAKE_EXE_LINKER_FLAGS})
-
 message("Cmake module path" ${CMAKE_MODULE_PATH}) 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../../cmake/")
 message("Cmake module path" ${CMAKE_MODULE_PATH}) 
@@ -23,7 +20,7 @@ if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "-L/opt/local/lib -Wl,-headerpad_max_install_names -arch x86_64 -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib")
 endif()
 
-#add_library(graphclear_legacy ${graphclear_legacy_SRC})
+### create an executable graph-clear code
 add_executable(graphclear_legacy_exe ${graphclear_legacy_SRC})
 
 find_package(Boost REQUIRED)
@@ -37,14 +34,11 @@ find_package( LibConfig REQUIRED )
 include_directories( ${LIBCONFIGPP_INCLUDE_DIR} )
 find_package( GSL REQUIRED )
 include_directories( ${GSL_INCLUDE_DIR} )
-
 include_directories(../include)
-
 #include_directories(../3rdparty/gslwrap)
 file(GLOB GSLWRAP_SRCS ../3rdparty/gslwrap/*.cc)
 add_library(gslwrap ${GSLWRAP_SRCS})
 include_directories(../3rdparty)
-
 include_directories(${PROJECT_SOURCE_DIR})
 
 target_link_libraries(graphclear_legacy_exe
@@ -55,4 +49,3 @@ target_link_libraries(graphclear_legacy_exe
     ${GSL_LIBRARIES}
     ${LIBCONFIGPP_LIBRARY}
     ${Boost_LIBRARIES})
-

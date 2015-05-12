@@ -4,6 +4,18 @@
 
 
 namespace polygonization {
+
+Polygon_Environment::Polygon_Environment(int n) 
+{
+    
+    Polygon* polygon = new Polygon;
+    CGAL::random_polygon_2(n, std::back_inserter(*polygon), 
+        Point_generator(400));
+    if( polygon->is_clockwise_oriented() ) { 
+        polygon->reverse_orientation(); 
+    }
+    this->set_master_polygon(polygon);
+}
     
 void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
 {
@@ -146,17 +158,21 @@ void Polygon_Environment::construct( Alpha_shape* alphaShape, float epsilon )
         }
         M_INFO3("Finished constructing Master Polygon (%d vertices).\n", master_polygon->size());
     }
-    
-    //M_INFO3("Building visibility graph.\n");
-    //if ( visibility_graph != NULL ) 
-    //    delete visibility_graph;
-    //visibility_graph = new Vis_graph(master_polygon->vertices_begin(), master_polygon->vertices_end());
-    
+        
     seg_vis_graph = new Segment_Visibility_Graph();
     
     this->process_master_polygon();
         
     return;
+}
+
+void Polygon_Environment::set_master_polygon(Polygon* m)
+{
+    master_polygon = m;
+    
+    seg_vis_graph = new Segment_Visibility_Graph();
+    
+    this->process_master_polygon();
 }
 
 void Polygon_Environment::process_master_polygon()

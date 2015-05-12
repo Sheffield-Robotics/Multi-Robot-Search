@@ -1,9 +1,16 @@
 #ifndef Gui_H
 #define Gui_H
 
-#include <QMainWindow>
+
 #include <vector>
 #include <list>
+#include <QtGui>
+#include <QMainWindow>
+#include <CGAL/Qt/GraphicsViewNavigation.h>
+#include <QLineF>
+#include <QRectF>
+#include <qapplication.h>
+
 #include "lineclear/CGALTypes.h"
 #include "lineclear/Environment.h"
 #include "lineclear/ChoiceTree.h"

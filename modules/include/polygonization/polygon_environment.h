@@ -58,9 +58,11 @@ namespace polygonization {
         
         
         Polygon_Environment() {n_polygons = 0;};
+        Polygon_Environment(int n);
         void simplify( double epsilon );
         void simplify_polygon( int poly, double epsilon );
         void construct( Alpha_shape* alphaShape, float epsilon );
+        void set_master_polygon(Polygon* m);
         void add_to_master(Polygon* poly, int poly_id, int goal);
 
         void extract_polygon( Alpha_shape::vertex_handle v );

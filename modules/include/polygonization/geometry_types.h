@@ -56,6 +56,9 @@ namespace polygonization {
     //typedef CGAL::Polytope_distance_d<Traits> Polytope_distance;
     //typedef CGAL::Creator_uniform_2<int, Point>               Creator;
     //typedef CGAL::Random_points_in_square_2<Point, Creator>   Point_generator; 
+    typedef CGAL::Creator_uniform_2<int, Point>               Creator;
+    typedef CGAL::Random_points_in_square_2<Point, Creator>   Point_generator;
+    
     //typedef CGAL::Circle_2<K>    Circle;
     //typedef CGAL::Line_2<K>      Line;
     //typedef CGAL::Ray_2<K>       Ray;

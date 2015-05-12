@@ -1,5 +1,3 @@
-#include <QtGui>
-#include <CGAL/Qt/GraphicsViewNavigation.h>
 #include "lineclear/Gui.h"
 
 using namespace lineclear;

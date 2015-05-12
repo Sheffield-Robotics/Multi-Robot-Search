@@ -64,26 +64,26 @@ void convert(double x, double y, double& longitute, double& latitude)
    gps_UTMtoLL(northing, easting, UTMZone, &latitude, &longitute);
 }
 
-void convert2(double x, double y, double& worldX, double& worldY)
-{
-   if (!viewer || !viewer->_geo) {
-      worldX = worldY = 0;
-      printf("ERROR conversion\n");
-      return;
-   }
-   HeightMap* hmap = viewer->getMap();
-   if (hmap == NULL) {
-      worldX = worldY = 0;
-      printf("ERROR conversion\n");
-      return;
-   }
- 
-   hmap->grid2world(worldX, worldY, x, y);
-   worldY *= -1.0;
-   if (viewer && viewer->_geo)
-      viewer->_geo->image2world(&worldX, &worldY);
-   //gps_UTMtoLL(northing, easting, UTMZone, &latitude, &longitute);
-}
+//void convert2(double x, double y, double& worldX, double& worldY)
+//{
+//   if (!viewer || !viewer->_geo) {
+//      worldX = worldY = 0;
+//      printf("ERROR conversion\n");
+//      return;
+//   }
+//   HeightMap* hmap = viewer->getMap();
+//   if (hmap == NULL) {
+//      worldX = worldY = 0;
+//      printf("ERROR conversion\n");
+//      return;
+//   }
+// 
+//   hmap->grid2world(worldX, worldY, x, y);
+//   worldY *= -1.0;
+//   if (viewer && viewer->_geo)
+//      viewer->_geo->image2world(&worldX, &worldY);
+//   //gps_UTMtoLL(northing, easting, UTMZone, &latitude, &longitute);
+//}
 
 
 void writeVisSetToFile(string filename, const Visibility::VisSet& vset ) 

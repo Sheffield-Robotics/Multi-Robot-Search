@@ -114,6 +114,7 @@ class Viewer : public QGLViewer
       void draw_gui_text();
       
       void init_pol();
+      void init_random_pol();
       void init_env();
       
       std::vector<int> artificials;
