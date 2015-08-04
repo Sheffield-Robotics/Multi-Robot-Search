@@ -153,7 +153,6 @@ void HeightMapClassifier::simpleClassifyMap(HeightMap * const map)
    _minRampAngle = Params::g_minRampAngle;
    _maxRampAngle = Params::g_maxRampAngle;
 
-
    computeNormals();
 
    for(int x = 0; x < curSizeX(); x++) {

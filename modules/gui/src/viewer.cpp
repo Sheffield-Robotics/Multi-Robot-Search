@@ -317,9 +317,9 @@ void Viewer::keyPressEvent(QKeyEvent *e) {
   case Qt::Key_P:
     M_INFO3("Compute line-clear strategy on master polygon \n");
     this->compute_lineclear_strategy();
-    break;
-
+    break;    
   case Qt::Key_A:
+    M_INFO3("Compute line-clear strategy on master polygon \n");
     if (_ct != NULL) {
       updated_cost = _ct->update_costs();
       _ct->_sg->compute();

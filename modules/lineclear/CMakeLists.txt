@@ -9,9 +9,6 @@ file(GLOB lineclear_SRC
 
 add_library(lineclear ${lineclear_SRC})
 
-
-
-
 message(${lineclear_SRC})
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )

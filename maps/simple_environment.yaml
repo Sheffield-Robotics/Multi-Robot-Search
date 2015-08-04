@@ -23,8 +23,8 @@ epsilon: 10
 alpha: 10
 blow_up_obstacles: 1
 # start positions in the grid to determine the connected traversable area
-startx: 220
-starty: 120
+startx: 20
+starty: 20
 # minimum area for a polygon to be add to the master polygon (in pix^2)
 min_polygon_area: 40.0
 construct_master: 1 

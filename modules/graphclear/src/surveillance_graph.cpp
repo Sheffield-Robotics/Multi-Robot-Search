@@ -74,7 +74,7 @@ void surveillance_graph_t::cut_strategy()
           }
         } else if ( out_completed == degree ) {
         if ( graphclear::DEBUG_LVL >= 2 ) {
-          std::cout << " we can build ALL incoming cut sequences" <<
+            std::cout << " we can build ALL incoming cut sequences";
             std::cout << std::endl;
         }
         boost::tie(ei, ei_end) = out_edges(v_y,*this);
