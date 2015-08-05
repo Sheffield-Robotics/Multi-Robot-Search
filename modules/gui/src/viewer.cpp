@@ -317,9 +317,9 @@ void Viewer::keyPressEvent(QKeyEvent *e) {
   case Qt::Key_P:
     M_INFO3("Compute line-clear strategy on master polygon \n");
     this->compute_lineclear_strategy();
-    break;    
+    break;
   case Qt::Key_A:
-    M_INFO3("Compute line-clear strategy on master polygon \n");
+    M_INFO3("Update costs and update strategy for 2.5D\n");
     if (_ct != NULL) {
       updated_cost = _ct->update_costs();
       _ct->_sg->compute();
@@ -374,6 +374,10 @@ void Viewer::keyPressEvent(QKeyEvent *e) {
     break;
   case Qt::Key_X:
     M_INFO3("Loading strategy \n");
+    if ( _pol == nullptr ) {
+      _pol = new polygonization::Polygon_Environment;
+      _pol->load_from_file("random.poly");
+    }
     this->load_strategy();
     break;
   case Qt::Key_C:
@@ -534,8 +538,17 @@ void Viewer::init_pol() {
 }
 
 void Viewer::init_random_pol() {
-  _pol = new polygonization::Polygon_Environment(100);
+  _pol = new polygonization::Polygon_Environment(20);
+  save_polygon();
 }
+
+void Viewer::save_polygon() {
+  M_INFO3("Attempting to save polygon\n");
+  if ( _pol != nullptr )
+    _pol->save_to_file("random.poly");
+}
+
+
 
 void Viewer::init_env() {
   if (_env == NULL) {
@@ -591,6 +604,7 @@ void Viewer::save_choice_tree() {
 }
 
 void Viewer::load_strategy() {
+  
   string filename = _lastMapPureFileName + ".ose";
   ifstream file(filename.c_str(), ios::in);
   if (!file.is_open()) {
@@ -911,8 +925,11 @@ void Viewer::next_step() {
   }
   std::cout << " cleared obstacle " << new_obstacle << std::endl;
   cleared_obstacles.push_back(new_obstacle);
+  std::cout << " sorting cleared obstacles " << std::endl;
   cleared_obstacles.sort();
+  std::cout << " ... moving on " << std::endl;
   obstacle_sequence_it++;
+  std::cout << " ... " << std::endl;
 }
 
 void Viewer::prepareHelp() {
@@ -1706,9 +1723,9 @@ void Viewer::apply_hungarian() {
     M_INFO1_D(DEBUG_HUNGARIAN, 1, "Time %d with %d targets\n", i, numTargets);
     M_INFO1_D(DEBUG_HUNGARIAN, 1, " Initializing costs and assignment\n");
     vector<double> dummy(numTargets);
-    vector<vector<double> > costs(numAgents, dummy);
+    vector<vector<double>> costs(numAgents, dummy);
     vector<bool> dummy2(numTargets);
-    vector<vector<bool> > assignment(numAgents, dummy2);
+    vector<vector<bool>> assignment(numAgents, dummy2);
     for (int d = 0; d < numTargets; d++) {
       for (int p = 0; p < numAgents; p++) {
         costs[p][d] = 0;
@@ -2191,23 +2208,20 @@ void Viewer::draw_shortest_split() {
 }
 
 void Viewer::drawStrategyStep() {
+  std::cout << " Drawing strategy step " << std::endl;
   // draw the proper lines for the step in the strategy
   // l1,l2,l3,l4
   glEnable(GL_LIGHTING);
   glLineWidth(12.0);
   glColor3f(1.0, 1.0, 0.0);
-  // std::cout << " Drawing strategy step " << std::endl;
+
   std::list<polygonization::KERNEL::Segment_2>::iterator split_it;
   split_it = split_point_list.begin();
   while (split_it != split_point_list.end()) {
     drawSegment(*split_it);
     split_it++;
   }
-  // if ( l1.target() != l1.source() )
-  //    this->drawSegment(l1);
-  // if ( l2.target() != l2.source() )
-  //    this->drawSegment(l2);
-
+  
   glLineWidth(8.0);
   glColor3f(0.0, 0.0, 1.0);
   std::map<std::pair<int, int>, lineclear::Segment>::iterator i;
@@ -2218,7 +2232,7 @@ void Viewer::drawStrategyStep() {
   }
 
   std::map<std::pair<int, int>,
-           std::list<polygonization::KERNEL::Segment_2> >::iterator i2;
+           std::list<polygonization::KERNEL::Segment_2>>::iterator i2;
   i2 = blocking_lines_map2.begin();
   while (i2 != blocking_lines_map2.end()) {
     std::list<polygonization::KERNEL::Segment_2>::iterator list_it;
@@ -2230,6 +2244,7 @@ void Viewer::drawStrategyStep() {
     }
     i2++;
   }
+  
 }
 
 void Viewer::drawPolygonizationSegment(polygonization::Segment s) {
@@ -2256,8 +2271,12 @@ void Viewer::drawSegment(lineclear::Segment s, double add_ground) {
   int gy = ceil(CGAL::to_double(s.source().y()));
   int g2x = ceil(CGAL::to_double(s.target().x()));
   int g2y = ceil(CGAL::to_double(s.target().y()));
-  ground = max(_map->getCellsMM()[gx][gy].getHeight() / 1000.0,
-               _map->getCellsMM()[g2x][g2y].getHeight() / 1000.0);
+  if ( _map->pointInMap(gx,gy) && _map->pointInMap(g2x,g2y) ) {
+    ground = max(_map->getCellsMM()[gx][gy].getHeight() / 1000.0,
+                 _map->getCellsMM()[g2x][g2y].getHeight() / 1000.0);
+  } else {
+    ground = 0;
+  }
   _map->grid2world(wx, wy, gx, gy);
   _map->grid2world(w2x, w2y, g2x, g2y);
   drawSphere(0.1, wx, wy, ground);

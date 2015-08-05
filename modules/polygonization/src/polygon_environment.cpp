@@ -4,6 +4,7 @@
 
 namespace polygonization {
 
+
 Polygon_Environment::Polygon_Environment(int n) {
   _visi_epsilon = 0.00000000001;
   _epsilon = 10;
@@ -47,7 +48,7 @@ void Polygon_Environment::construct(Alpha_shape *alphaShape, float epsilon) {
   if (open_polygons > 0)
     M_WARN("\nalpha_shape - have OPEN POLYGONS!!!\n");
 
-  std::list<std::pair<int, double> > area_list;
+  std::list<std::pair<int, double>> area_list;
   for (unsigned int i = 0; i < this->size(); i++) {
     double area = fabs(CGAL::to_double(this->at(i).area()));
     area_list.push_back(std::pair<int, double>(i, area));
@@ -55,7 +56,7 @@ void Polygon_Environment::construct(Alpha_shape *alphaShape, float epsilon) {
       std::cout << " poly " << i << " area " << area << std::endl;
   }
   area_list.sort(pair_comparison);
-  std::list<std::pair<int, double> >::iterator list_i;
+  std::list<std::pair<int, double>>::iterator list_i;
   list_i = area_list.begin();
   M_INFO2("area_list number of polygons %d", area_list.size());
   int larget_poly_i = list_i->first;
@@ -122,7 +123,7 @@ void Polygon_Environment::construct(Alpha_shape *alphaShape, float epsilon) {
     }
     M_INFO1("Computing polygon distances to Master Polygon for %d polygons.\n",
             this->size());
-    std::list<std::pair<int, double> > distance_list;
+    std::list<std::pair<int, double>> distance_list;
     for (unsigned int i = 0; i < this->size(); i++) {
       double d = 0;
       if (i != second_largest_poly_i) {
@@ -221,12 +222,12 @@ void Polygon_Environment::process_master_polygon() {
 
   std::vector<KERNEL::Segment_2> dummy(n_segs + 1);
   seg_to_seg_segments =
-      new std::vector<std::vector<KERNEL::Segment_2> >(n_segs + 1, dummy);
+      new std::vector<std::vector<KERNEL::Segment_2>>(n_segs + 1, dummy);
   std::vector<bool> dummy2(n_segs + 1);
-  seg_to_seg_visible = new std::vector<std::vector<bool> >(n_segs + 1, dummy2);
+  seg_to_seg_visible = new std::vector<std::vector<bool>>(n_segs + 1, dummy2);
   std::vector<double> dummy3(n_segs + 1);
   seg_to_seg_distance =
-      new std::vector<std::vector<double> >(n_segs + 1, dummy3);
+      new std::vector<std::vector<double>>(n_segs + 1, dummy3);
   for (int i = 0; i < n_segs + 1; i++) {
     for (int j = 0; j < n_segs + 1; j++) {
       (*seg_to_seg_visible)[i][j] = false;
@@ -236,14 +237,14 @@ void Polygon_Environment::process_master_polygon() {
 
   std::vector<bool> c_dum1(n_segs);
   std::vector<double> c_dum2(n_segs);
-  std::vector<std::list<KERNEL::Segment_2> > c_dum3(n_segs);
+  std::vector<std::list<KERNEL::Segment_2>> c_dum3(n_segs);
   get_shortest_path_cache_filled =
-      new std::vector<std::vector<bool> >(n_segs, c_dum1);
+      new std::vector<std::vector<bool>>(n_segs, c_dum1);
   get_shortest_path_distance_cache =
-      new std::vector<std::vector<double> >(n_segs, c_dum2);
+      new std::vector<std::vector<double>>(n_segs, c_dum2);
   get_shortest_path_cache =
-      new std::vector<std::vector<std::list<KERNEL::Segment_2> > >(n_segs,
-                                                                   c_dum3);
+      new std::vector<std::vector<std::list<KERNEL::Segment_2>>>(n_segs,
+                                                                 c_dum3);
   for (int i = 0; i < n_segs; i++) {
     for (int j = 0; j < n_segs; j++) {
       (*get_shortest_path_cache_filled)[i][j] = false;
@@ -343,7 +344,7 @@ void Polygon_Environment::set_path_cache(int i, int j,
     M_INFO3("Setting path cache %d %d at d=%f", i, j, d);
     std::list<KERNEL::Segment_2>::iterator it = l.begin();
     for (; it != l.end(); it++) {
-      std::cout << *it << ' <-->';
+      std::cout << *it << " <-->";
     }
     std::cout << std::endl;
   }
@@ -2345,4 +2346,25 @@ void Polygon_Environment::simplify_polygon(int poly, double epsilon) {
 }
 
 void Polygon_Environment::make_simply_connected() {}
+
+void Polygon_Environment::save_to_file(std::string filename) {
+  std::ofstream outFile;
+  outFile.open(filename.c_str(), std::ios::out);
+  outFile << (*master_polygon);
+  outFile.close();
+}
+
+void Polygon_Environment::load_from_file(std::string filename) {
+  std::ifstream file(filename.c_str(), std::ios::in);
+  if (!file.is_open()) {
+    std::cout << " FAILED TO LOAD " << std::endl;
+    return;
+  } else {
+    std::cout << " LOADING FILE " << filename.c_str() << std::endl;
+  }
+  if ( master_polygon != nullptr ) delete master_polygon;
+  master_polygon = new Polygon;
+  file >> (*master_polygon);
+  set_master_polygon(master_polygon);
+}
 }

@@ -122,6 +122,8 @@ class Viewer : public QGLViewer
       HeightMap* getMap() {return _map;}
       Visibility* getVisibility() const {return _vis;} 
       Animator* getAnimator() const {return _anim;} 
+      
+      void save_polygon();
 
       deque<PlanNode>* testPlan;
       

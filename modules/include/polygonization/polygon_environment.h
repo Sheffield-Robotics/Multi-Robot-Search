@@ -54,7 +54,13 @@ public:
   bool is_artificial(int i);
   bool is_same_articifial(int i, int j);
 
-  Polygon_Environment() { n_polygons = 0; };
+  Polygon_Environment() { 
+    n_polygons = 0; 
+    master_polygon = NULL; 
+    _visi_epsilon = 0.00000000001;
+    _epsilon = 10;
+  };
+  
   Polygon_Environment(int n);
   void simplify(double epsilon);
   void simplify_polygon(int poly, double epsilon);
@@ -208,6 +214,9 @@ public:
    * Author: Andreas Kolling ( Tue Aug 28 13:27:23 CEST 2012 )
    */
   void make_simply_connected();
+  
+  void save_to_file( std::string filename );
+  void load_from_file(std::string filename);
 
 private:
   void visit_alpha_vertex(Alpha_shape::vertex_handle v_start);
