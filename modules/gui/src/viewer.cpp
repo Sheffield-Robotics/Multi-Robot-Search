@@ -127,8 +127,8 @@ void Viewer::init() {
   // Activate mouse tracking
   setMouseTracking(true);
 
-  // resize(800,600);
-  resize(1024, 768);
+  resize(800,600);
+  // resize(1024, 768);
 }
 
 void Viewer::closeInterfaceWindow() {
@@ -376,7 +376,8 @@ void Viewer::keyPressEvent(QKeyEvent *e) {
     M_INFO3("Loading strategy \n");
     if ( _pol == nullptr ) {
       _pol = new polygonization::Polygon_Environment;
-      _pol->load_from_file("random.poly");
+      string poly_file = _lastMapPureFileName + "_random.poly";
+      _pol->load_from_file(poly_file);
     }
     this->load_strategy();
     break;
@@ -544,8 +545,10 @@ void Viewer::init_random_pol() {
 
 void Viewer::save_polygon() {
   M_INFO3("Attempting to save polygon\n");
-  if ( _pol != nullptr )
-    _pol->save_to_file("random.poly");
+  if ( _pol != nullptr ) {
+    string poly_file = _lastMapPureFileName + "_random.poly";
+    _pol->save_to_file(poly_file);
+  } 
 }
 
 
@@ -749,7 +752,6 @@ void Viewer::next_step() {
     if (yaml_param["use_poly_environment_costs"].as<int>()) {
       double cost1, cost2;
       int split_point_index;
-      // std::list<polygonization::KERNEL::Segment_2> split_point_list;
       int p_i = left_obstacle, p_j = right_obstacle, p_k = new_obstacle;
       _pol->fix_index(p_i);
       _pol->fix_index(p_j);
@@ -775,9 +777,9 @@ void Viewer::next_step() {
     if (Yaml_Config::yaml_param["use_new_sensing_range"].as<int>())
       ext_cost = ceil(ext_cost / (2 * _vis->get_max_steps()));
 
-    M_INFO2("_vis->get_max_steps() - range %d", _vis->get_max_steps());
+    M_INFO2("_vis->get_max_steps() - range %d \n", _vis->get_max_steps());
 
-    M_INFO2("Extension costs %d", ext_cost);
+    M_INFO2("Extension costs %d\n", ext_cost);
     // What's the choice set we are extending?
     // i = left_obstacle + 1; k =
     // i-1 = left_obstacle and i+k = right_obstacle
@@ -923,13 +925,10 @@ void Viewer::next_step() {
   } else {
     // we do not yet have enough obstacle indices to draw any lines
   }
-  std::cout << " cleared obstacle " << new_obstacle << std::endl;
+  std::cout << "Finished clearing obstacle " << new_obstacle << std::endl;
   cleared_obstacles.push_back(new_obstacle);
-  std::cout << " sorting cleared obstacles " << std::endl;
   cleared_obstacles.sort();
-  std::cout << " ... moving on " << std::endl;
   obstacle_sequence_it++;
-  std::cout << " ... " << std::endl;
 }
 
 void Viewer::prepareHelp() {
@@ -975,7 +974,7 @@ bool Viewer::loadHeightmapFromTIFF(const string &filename) {
     return false;
   }
 
-  // reload param file
+  // load param file
   string fname = _lastMapPureFileName + ".ini";
   Params::readConfFile(fname.c_str());
   string fname_yaml = _lastMapPureFileName + ".yaml";
@@ -2208,7 +2207,7 @@ void Viewer::draw_shortest_split() {
 }
 
 void Viewer::drawStrategyStep() {
-  std::cout << " Drawing strategy step " << std::endl;
+  //std::cout << " Drawing strategy step " << std::endl;
   // draw the proper lines for the step in the strategy
   // l1,l2,l3,l4
   glEnable(GL_LIGHTING);

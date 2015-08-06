@@ -4,7 +4,6 @@
 
 namespace polygonization {
 
-
 Polygon_Environment::Polygon_Environment(int n) {
   _visi_epsilon = 0.00000000001;
   _epsilon = 10;
@@ -593,7 +592,7 @@ KERNEL::Point_2 Polygon_Environment::get_other(KERNEL::Point_2 p,
 std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
     int i, int j, int k, double &cost1, double &cost2, int &split_point_index) {
   if (DEBUG_POLYGON_ENVIRONMENT >= 1) {
-    M_INFO1("\n shortest_split_costs %d %d %d\n", i, j, k);
+    M_INFO1("\n Polygon_Environment::shortest_split_costs %d %d %d\n", i, j, k);
   }
 
   if (is_sequential(i, k) && is_sequential(j, k)) {
@@ -602,14 +601,59 @@ std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
     int smallest, largest;
     smallest = (i < k) ? i : j;
     largest = (i < k) ? j : i;
+    if (k == 0)
+      std::swap(smallest, largest);
     KERNEL::Orientation o1 = CGAL::orientation(master_polygon->vertex(smallest),
                                                master_polygon->vertex(k),
                                                master_polygon->vertex(largest));
     KERNEL::Orientation o2 = CGAL::orientation(
         master_polygon->vertex(k), master_polygon->vertex(largest),
         master_polygon->edge(largest).target());
-    // std::cout << o1 << " " << o2 << std::endl;
-    if (o1 != CGAL::RIGHT_TURN || o2 != CGAL::RIGHT_TURN) {
+
+    KERNEL::Angle a1 =
+        CGAL::angle(master_polygon->vertex(smallest), master_polygon->vertex(k),
+                    master_polygon->vertex(largest));
+    KERNEL::Angle a2 =
+        CGAL::angle(master_polygon->vertex(k), master_polygon->vertex(largest),
+                    master_polygon->edge(largest).target());
+    bool have_acute_left_turn = false;
+    double dist_acute_left_turn1 = -1, dist_acute_left_turn2 = -1;
+    KERNEL::Segment_2 segm_acute_left_turn1, segm_acute_left_turn2;
+    if (a1 == CGAL::ACUTE && o1 == CGAL::LEFT_TURN) {
+      have_acute_left_turn = true;
+      // get the shortest path from master_polygon->vertex(largest)
+      // to the segment starting at smallest
+      std::tie(dist_acute_left_turn1, segm_acute_left_turn1) =
+          vertex_to_segment_visible_distance(largest, smallest);
+    }
+    if (a2 == CGAL::ACUTE && o1 == CGAL::LEFT_TURN) {
+      have_acute_left_turn = true;
+      std::tie(dist_acute_left_turn2, segm_acute_left_turn2) =
+          vertex_to_segment_visible_distance(k, largest);
+      if (dist_acute_left_turn2 < dist_acute_left_turn1) {
+        dist_acute_left_turn1 = dist_acute_left_turn2;
+        segm_acute_left_turn1 = segm_acute_left_turn2;
+      }
+    }
+    if (have_acute_left_turn) {
+      cost1 = dist_acute_left_turn1;
+      cost2 = 0;
+      split_point_index = 0;
+      std::list<KERNEL::Segment_2> return_this;
+      return_this.push_back(segm_acute_left_turn1);
+      return return_this;
+    }
+
+    if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+      std::cout << " Orientation o1=" << o1 << " o2=" << o2 << std::endl;
+      std::cout << " Angle a1=" << a1 << " a2=" << a2 << std::endl;
+      std::cout << " obtuse " << CGAL::OBTUSE << std::endl;
+    }
+    if ((o1 == CGAL::RIGHT_TURN && o2 == CGAL::RIGHT_TURN) ||
+        (a1 == CGAL::OBTUSE && a2 == CGAL::OBTUSE) ||
+        (a1 == CGAL::OBTUSE && o2 == CGAL::RIGHT_TURN) ||
+        (a1 == CGAL::ACUTE && o1 == CGAL::RIGHT_TURN && a2 == CGAL::OBTUSE)) {
+      std::cout << " Whole edge length used " << std::endl;
       // we can skip the steps below and just return the length of edge k
       cost1 = sqrt(CGAL::to_double(master_polygon->edge(k).squared_length()));
       cost2 = 0;
@@ -617,6 +661,15 @@ std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
       std::list<KERNEL::Segment_2> return_this;
       return_this.push_back(master_polygon->edge(k));
       return return_this;
+    } else if (a1 == CGAL::OBTUSE && a2 == CGAL::ACUTE &&
+               o2 == CGAL::LEFT_TURN) {
+      // largest goes backwards towards smaller
+    } else if (a1 == CGAL::ACUTE && a2 == CGAL::OBTUSE &&
+               o1 == CGAL::LEFT_TURN) {
+      // smallest goes towards larger
+    } else {
+      if (DEBUG_POLYGON_ENVIRONMENT >= 2)
+        M_INFO1("     case not caught \n");
     }
   } else if (is_sequential(i, k) || is_sequential(j, k)) {
     if (DEBUG_POLYGON_ENVIRONMENT >= 2)
@@ -646,6 +699,9 @@ std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
     return return_this;
   }
 
+  if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+    std::cout << " Not taking a shortcut " << std::endl;
+  }
   // get the shorest path to segments
   std::list<KERNEL::Segment_2> list_i_k, list_j_k;
   double final_d_i, final_d_j;
@@ -715,8 +771,11 @@ std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
   double improvement = std::numeric_limits<double>::max();
   KERNEL::Point_2 v(0, 0);
   KERNEL::Point_2 v_prev(0, 0);
-
+  M_INFO2("Entering improvement phase \n", tries);
   while (improvement > 0.0001 && tries < max_tries) {
+    if (DEBUG_POLYGON_ENVIRONMENT >= 4) {
+      M_INFO1("Try %d for improvement \n", tries);
+    }
     KERNEL::Point_2 p_ik = get_point_of_segment_on_segment(list_i_k, k);
     KERNEL::Point_2 p_jk = get_point_of_segment_on_segment(list_j_k, k);
     KERNEL::Segment_2 s_ik = get_segment_to_k(list_i_k, k);
@@ -1137,7 +1196,7 @@ void Polygon_Environment::process_visibility_polygon(
                                    KERNEL::Segment_2(v_i, v_next)));
         if (sqrd_d < _visi_epsilon * _visi_epsilon) {
           if (DEBUG_POLYGON_ENVIRONMENT >= 5) {
-            M_INFO1(" PPretty close %f  \n", sqrd_d);
+            M_INFO1(" Pretty close %f  \n", sqrd_d);
           }
           KERNEL::Segment_2 seg_to_seg_seg2(
               v, master_polygon->vertex(other_edge_index));
@@ -1224,7 +1283,10 @@ Polygon_Environment::get_shortest_path(KERNEL::Point_2 v, int j, int k,
 std::list<KERNEL::Segment_2>
 Polygon_Environment::get_shortest_path(int i, int j, double &final_dist) {
   if (DEBUG_POLYGON_ENVIRONMENT >= 2)
-    M_INFO2("get_shortest_path %d %d\n", i, j);
+    M_INFO2("Polygon_Environment::get_shortest_path between edges %d %d\n", i,
+            j);
+  // Check the cache only for regular edges - not the extra vertex at
+  // index master_polygon->size()
   if (i < master_polygon->size() && j < master_polygon->size()) {
     if (DEBUG_POLYGON_ENVIRONMENT >= 3)
       M_INFO2("checking cache\n");
@@ -1238,7 +1300,7 @@ Polygon_Environment::get_shortest_path(int i, int j, double &final_dist) {
 
   std::list<KERNEL::Segment_2> segment_list;
   std::list<KERNEL::Segment_2> segment_list_path;
-  // The quick options
+  // The quick options: either trivial or neighboring indices
   if (i == j) {
     if (DEBUG_POLYGON_ENVIRONMENT >= 3)
       M_INFO2("i==j returning 0 and empty segment list\n");
@@ -1247,7 +1309,7 @@ Polygon_Environment::get_shortest_path(int i, int j, double &final_dist) {
   } else if ((abs(j - i) == 1 || (i == 0 && j == master_polygon->size() - 1) ||
               (j == 0 && i == master_polygon->size() - 1)) &&
              master_polygon->size() != i && master_polygon->size() != j) {
-    // the common point of j and i is large one
+    // the common point of j and i is the larger one
     int iv = i > j ? i : j;
     if ((i == 0 && j == master_polygon->size() - 1) ||
         (j == 0 && i == master_polygon->size() - 1)) {
@@ -1271,11 +1333,7 @@ Polygon_Environment::get_shortest_path(int i, int j, double &final_dist) {
 
   double shortest_distance = std::numeric_limits<double>::max();
   int n_segs = this->seg_vis_graph_type1_vertices.size();
-  // M_INFO2("seg_to_seg_visible->size() %d \n", seg_to_seg_visible->size() );
-  // M_INFO2("(*seg_to_seg_visible)[i].size()  %d \n ",
-  // (*seg_to_seg_visible)[i].size() );
   bool tr = (*seg_to_seg_visible)[i][j];
-  // M_INFO2("visible?  %d \n",  tr);
   if (i < seg_to_seg_visible->size() && j < (*seg_to_seg_visible)[i].size() &&
       (*seg_to_seg_visible)[i][j]) {
     if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
@@ -1329,6 +1387,28 @@ Polygon_Environment::get_shortest_path(int i, int j, double &final_dist) {
   }
 }
 
+std::pair<double, KERNEL::Segment_2>
+Polygon_Environment::vertex_to_segment_visible_distance(int v_i, int s_i) {
+  Segment_Visibility_Graph::vertex v, s;
+  v = this->seg_vis_graph_type2_vertices[v_i];
+  s = this->seg_vis_graph_type1_vertices[s_i];
+  Segment_Visibility_Graph::edge_descriptor short_e;
+  bool found;
+  std::tie(short_e, found) = seg_vis_graph->get_edge_shortest(v, s);
+
+  if (!found) {
+    return std::make_pair(-1, KERNEL::Segment_2());
+  }
+  Segment_Visibility_Graph::mygraph_t *g = seg_vis_graph->g;
+  KERNEL::Point_2 p1((*g)[short_e].p_x, (*g)[short_e].p_y);
+  KERNEL::Point_2 p2((*g)[short_e].p_x2, (*g)[short_e].p_y2);
+  KERNEL::Segment_2 seg(p1, p2);
+  std::cout << seg << std::endl;
+  std::cout << "distance " << (*g)[short_e].distance << std::endl;
+  // sqrt(s.squared_length());
+  return std::make_pair((*g)[short_e].distance, seg);
+}
+
 std::list<KERNEL::Segment_2>
 Polygon_Environment::plan_in_svg(Segment_Visibility_Graph::vertex v,
                                  Segment_Visibility_Graph::vertex w,
@@ -1342,8 +1422,9 @@ Polygon_Environment::plan_in_svg(Segment_Visibility_Graph::vertex v,
   Segment_Visibility_Graph::mygraph_t *g = seg_vis_graph->g;
   total_path_distance = 0;
   for (++spi; spi != shortest_path.end(); ++spi) {
-    Segment_Visibility_Graph::edge_descriptor short_e =
-        seg_vis_graph->get_edge_shortest(last_v, *spi);
+    Segment_Visibility_Graph::edge_descriptor short_e;
+    bool found;
+    std::tie(short_e, found) = seg_vis_graph->get_edge_shortest(last_v, *spi);
     KERNEL::Point_2 p1((*g)[short_e].p_x, (*g)[short_e].p_y);
     KERNEL::Point_2 p2((*g)[short_e].p_x2, (*g)[short_e].p_y2);
     KERNEL::Segment_2 s(p1, p2);
@@ -1403,6 +1484,8 @@ void Polygon_Environment::remove_extra_edges() {
   extra_edges.clear();
 }
 
+/* A few extra edges for planning, to make sure visi graph is connected
+*/
 void Polygon_Environment::add_extra_edges(int i, int j) {
   extra_edges.clear();
   add_extra_edges_for(i);
@@ -2362,9 +2445,19 @@ void Polygon_Environment::load_from_file(std::string filename) {
   } else {
     std::cout << " LOADING FILE " << filename.c_str() << std::endl;
   }
-  if ( master_polygon != nullptr ) delete master_polygon;
+  if (master_polygon != nullptr)
+    delete master_polygon;
   master_polygon = new Polygon;
   file >> (*master_polygon);
+  if (master_polygon->is_clockwise_oriented()) {
+    std::cout << " Polygon is clockwise " << std::endl;
+    master_polygon->reverse_orientation();
+  }
+  std::cout << " currently at not clockwise "
+            << master_polygon->is_clockwise_oriented() << std::endl;
+  // area is positive for counter clockwise polygons and negative for clockwise
+  // polygons.
+  std::cout << " area " << master_polygon->area() << std::endl;
   set_master_polygon(master_polygon);
 }
 }

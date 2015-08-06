@@ -15,7 +15,7 @@
 #include <list>
 #include <limits>
 
-#define DEBUG_POLYGON_ENVIRONMENT 1
+#define DEBUG_POLYGON_ENVIRONMENT 5
 #define DEBUG_POLYGONENVIRONMENT 0
 #define DEBUG_POLYGON_ENVIRONMENT_PRINT 0
 #define DEBUG_POLYGON_ENVIRONMENT_VISI 0
@@ -54,13 +54,13 @@ public:
   bool is_artificial(int i);
   bool is_same_articifial(int i, int j);
 
-  Polygon_Environment() { 
-    n_polygons = 0; 
-    master_polygon = NULL; 
+  Polygon_Environment() {
+    n_polygons = 0;
+    master_polygon = NULL;
     _visi_epsilon = 0.00000000001;
     _epsilon = 10;
   };
-  
+
   Polygon_Environment(int n);
   void simplify(double epsilon);
   void simplify_polygon(int poly, double epsilon);
@@ -123,6 +123,9 @@ public:
   std::list<KERNEL::Segment_2> get_path_cache(int i, int j);
   double get_path_distance(int i, int j);
   void set_path_cache(int i, int j, std::list<KERNEL::Segment_2> l, double d);
+
+  std::pair<double, KERNEL::Segment_2>
+  vertex_to_segment_visible_distance(int v_i, int s_i);
 
   std::list<KERNEL::Segment_2> plan_in_svg(Segment_Visibility_Graph::vertex v,
                                            Segment_Visibility_Graph::vertex w,
@@ -214,8 +217,8 @@ public:
    * Author: Andreas Kolling ( Tue Aug 28 13:27:23 CEST 2012 )
    */
   void make_simply_connected();
-  
-  void save_to_file( std::string filename );
+
+  void save_to_file(std::string filename);
   void load_from_file(std::string filename);
 
 private:
