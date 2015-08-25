@@ -5,7 +5,7 @@
 #include <list>
 #include <iostream>
 
-#define DEBUG_CUTSEQUENCE 4
+#define DEBUG_CUTSEQUENCE 2
 
 class CutSequence {    
   public:

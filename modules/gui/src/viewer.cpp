@@ -127,7 +127,7 @@ void Viewer::init() {
   // Activate mouse tracking
   setMouseTracking(true);
 
-  resize(800,600);
+  resize(800, 600);
   // resize(1024, 768);
 }
 
@@ -374,7 +374,7 @@ void Viewer::keyPressEvent(QKeyEvent *e) {
     break;
   case Qt::Key_X:
     M_INFO3("Loading strategy \n");
-    if ( _pol == nullptr ) {
+    if (_pol == nullptr) {
       _pol = new polygonization::Polygon_Environment;
       string poly_file = _lastMapPureFileName + "_random.poly";
       _pol->load_from_file(poly_file);
@@ -539,19 +539,18 @@ void Viewer::init_pol() {
 }
 
 void Viewer::init_random_pol() {
-  _pol = new polygonization::Polygon_Environment(20);
+  _pol = new polygonization::Polygon_Environment(
+      Yaml_Config::yaml_param["poly_n"].as<int>());
   save_polygon();
 }
 
 void Viewer::save_polygon() {
   M_INFO3("Attempting to save polygon\n");
-  if ( _pol != nullptr ) {
+  if (_pol != nullptr) {
     string poly_file = _lastMapPureFileName + "_random.poly";
     _pol->save_to_file(poly_file);
-  } 
+  }
 }
-
-
 
 void Viewer::init_env() {
   if (_env == NULL) {
@@ -607,7 +606,7 @@ void Viewer::save_choice_tree() {
 }
 
 void Viewer::load_strategy() {
-  
+
   string filename = _lastMapPureFileName + ".ose";
   ifstream file(filename.c_str(), ios::in);
   if (!file.is_open()) {
@@ -1288,6 +1287,7 @@ void Viewer::toggle_visi_poly(bool backwards) {
     visi_poly_index = -1;
     drawVisiPoli = false;
   }
+  M_INFO3("toggle_visi_poly: visi_poly_index %d \n", visi_poly_index);
   redraw = true;
 }
 
@@ -2164,12 +2164,14 @@ void Viewer::drawVisibilityPolygon() {
   VisiLibity::Point poin = _pol->get_visi_vertex(visi_poly_index);
   int x = ceil(poin.x());
   int y = ceil(poin.y());
-  if (!_map->pointInMap(x, y))
-    return;
-  double wx, wy;
-  _map->grid2world(wx, wy, x, y);
-  double height = _map->getCellsMM()[x][y].getHeight() / 1000.0;
-  double h = _vis->getPursuerHeight() + 1.0;
+  double wx, wy, height = 0, h = 0;
+  if (!_map->pointInMap(x, y)) {
+    
+  } else {
+      _map->grid2world(wx, wy, x, y);
+      height = _map->getCellsMM()[x][y].getHeight() / 1000.0;
+      h = _vis->getPursuerHeight() + 1.0;
+  }    
   glColor3f(0.0, 1.0, 1.0);
   glLineWidth(3.0);
   drawSphere(0.3, wx, wy, height + h);
@@ -2207,7 +2209,7 @@ void Viewer::draw_shortest_split() {
 }
 
 void Viewer::drawStrategyStep() {
-  //std::cout << " Drawing strategy step " << std::endl;
+  // std::cout << " Drawing strategy step " << std::endl;
   // draw the proper lines for the step in the strategy
   // l1,l2,l3,l4
   glEnable(GL_LIGHTING);
@@ -2220,7 +2222,7 @@ void Viewer::drawStrategyStep() {
     drawSegment(*split_it);
     split_it++;
   }
-  
+
   glLineWidth(8.0);
   glColor3f(0.0, 0.0, 1.0);
   std::map<std::pair<int, int>, lineclear::Segment>::iterator i;
@@ -2243,7 +2245,6 @@ void Viewer::drawStrategyStep() {
     }
     i2++;
   }
-  
 }
 
 void Viewer::drawPolygonizationSegment(polygonization::Segment s) {
@@ -2270,7 +2271,7 @@ void Viewer::drawSegment(lineclear::Segment s, double add_ground) {
   int gy = ceil(CGAL::to_double(s.source().y()));
   int g2x = ceil(CGAL::to_double(s.target().x()));
   int g2y = ceil(CGAL::to_double(s.target().y()));
-  if ( _map->pointInMap(gx,gy) && _map->pointInMap(g2x,g2y) ) {
+  if (_map->pointInMap(gx, gy) && _map->pointInMap(g2x, g2y)) {
     ground = max(_map->getCellsMM()[gx][gy].getHeight() / 1000.0,
                  _map->getCellsMM()[g2x][g2y].getHeight() / 1000.0);
   } else {

@@ -512,10 +512,6 @@ int Polygon_Environment::get_block_cost(int i, int j, double r) {
   return cost;
 }
 
-bool Polygon_Environment::index_bound_check(int i) {
-  return (0 <= i && i < master_polygon->size());
-}
-
 bool Polygon_Environment::get_split_distances(int i, int j, int k, double &d1,
                                               double &d2, double r) {
   int split_point_index;
@@ -593,6 +589,9 @@ std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
     int i, int j, int k, double &cost1, double &cost2, int &split_point_index) {
   if (DEBUG_POLYGON_ENVIRONMENT >= 1) {
     M_INFO1("\n Polygon_Environment::shortest_split_costs %d %d %d\n", i, j, k);
+    std::cout << i << " edge " << master_polygon->edge(i) << std::endl;
+    std::cout << j << " edge " << master_polygon->edge(j) << std::endl;
+    std::cout << k << " edge " << master_polygon->edge(k) << std::endl;
   }
 
   if (is_sequential(i, k) && is_sequential(j, k)) {
@@ -616,31 +615,38 @@ std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
     KERNEL::Angle a2 =
         CGAL::angle(master_polygon->vertex(k), master_polygon->vertex(largest),
                     master_polygon->edge(largest).target());
-    bool have_acute_left_turn = false;
     double dist_acute_left_turn1 = -1, dist_acute_left_turn2 = -1;
     KERNEL::Segment_2 segm_acute_left_turn1, segm_acute_left_turn2;
     if (a1 == CGAL::ACUTE && o1 == CGAL::LEFT_TURN) {
-      have_acute_left_turn = true;
+      if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+        std::cout << "smaller has acute left turn " << std::endl;
+      }
       // get the shortest path from master_polygon->vertex(largest)
       // to the segment starting at smallest
       std::tie(dist_acute_left_turn1, segm_acute_left_turn1) =
           vertex_to_segment_visible_distance(largest, smallest);
     }
     if (a2 == CGAL::ACUTE && o1 == CGAL::LEFT_TURN) {
-      have_acute_left_turn = true;
+      if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+        std::cout << "larger has acute left turn " << std::endl;
+      }
       std::tie(dist_acute_left_turn2, segm_acute_left_turn2) =
           vertex_to_segment_visible_distance(k, largest);
-      if (dist_acute_left_turn2 < dist_acute_left_turn1) {
+      if (dist_acute_left_turn2 < dist_acute_left_turn1 ||
+          dist_acute_left_turn1 == -1) {
         dist_acute_left_turn1 = dist_acute_left_turn2;
         segm_acute_left_turn1 = segm_acute_left_turn2;
       }
     }
-    if (have_acute_left_turn) {
+    if (dist_acute_left_turn1 != -1) {
       cost1 = dist_acute_left_turn1;
       cost2 = 0;
       split_point_index = 0;
       std::list<KERNEL::Segment_2> return_this;
       return_this.push_back(segm_acute_left_turn1);
+      if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+        std::cout << "cost1=" << cost1 << " cost2=" << cost2 << std::endl;
+      }
       return return_this;
     }
 
@@ -771,9 +777,14 @@ std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
   double improvement = std::numeric_limits<double>::max();
   KERNEL::Point_2 v(0, 0);
   KERNEL::Point_2 v_prev(0, 0);
-  M_INFO2("Entering improvement phase \n", tries);
-  while (improvement > 0.0001 && tries < max_tries) {
-    if (DEBUG_POLYGON_ENVIRONMENT >= 4) {
+
+  if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+    M_INFO2("\nEntering improvement phase\n");
+  }
+
+  // THE EXPENSIVE PART!!!
+  while (improvement > 1.0 && tries < max_tries) {
+    if (DEBUG_POLYGON_ENVIRONMENT >= 1) {
       M_INFO1("Try %d for improvement \n", tries);
     }
     KERNEL::Point_2 p_ik = get_point_of_segment_on_segment(list_i_k, k);
@@ -1041,6 +1052,7 @@ void Polygon_Environment::process_visibility_polygon(
 
   if (DEBUG_POLYGON_ENVIRONMENT_VISI >= 4)
     M_INFO3("Parsing visibility polygon for vertex-segment %d\n", v_index);
+
   for (int i = 0; i < v_poly.n(); i++) {
     if (DEBUG_POLYGON_ENVIRONMENT_VISI >= 5)
       M_INFO1("    \n\nv_i: vertex %d of visi poly\n", i);
@@ -1382,31 +1394,72 @@ Polygon_Environment::get_shortest_path(int i, int j, double &final_dist) {
     return segment_list;
   } else {
     if (DEBUG_POLYGON_ENVIRONMENT >= 2)
-      M_ERR("ERROR failed planning the shortest path ");
+      M_ERR("ERROR failed planning the shortest path\n ");
     return segment_list;
   }
 }
 
+/*
+ * Get the distance of the direct line between a segment and a vertex
+ *
+ * Author: Andreas Kolling
+ */
 std::pair<double, KERNEL::Segment_2>
 Polygon_Environment::vertex_to_segment_visible_distance(int v_i, int s_i) {
+  double final_shortest_distance = -1;
+  if (DEBUG_POLYGON_ENVIRONMENT >= 2)
+    M_INFO2("Polygon_Environment::vertex_to_segment_visible_distance %d %d \n",
+            v_i, s_i);
   Segment_Visibility_Graph::vertex v, s;
   v = this->seg_vis_graph_type2_vertices[v_i];
   s = this->seg_vis_graph_type1_vertices[s_i];
   Segment_Visibility_Graph::edge_descriptor short_e;
   bool found;
   std::tie(short_e, found) = seg_vis_graph->get_edge_shortest(v, s);
-
   if (!found) {
-    return std::make_pair(-1, KERNEL::Segment_2());
+    if (DEBUG_POLYGON_ENVIRONMENT >= 2)
+      M_INFO2("no direct visibility edge between %d %d \n", v_i, s_i);
+    std::tie(short_e, found) = seg_vis_graph->get_edge_shortest(s, v);
+    if (!found) {
+      if (DEBUG_POLYGON_ENVIRONMENT >= 2)
+        M_INFO2("no direct visibility edge between %d %d \n", s_i, v_i);
+      // return std::make_pair(-1, KERNEL::Segment_2());
+    }
   }
-  Segment_Visibility_Graph::mygraph_t *g = seg_vis_graph->g;
-  KERNEL::Point_2 p1((*g)[short_e].p_x, (*g)[short_e].p_y);
-  KERNEL::Point_2 p2((*g)[short_e].p_x2, (*g)[short_e].p_y2);
-  KERNEL::Segment_2 seg(p1, p2);
-  std::cout << seg << std::endl;
-  std::cout << "distance " << (*g)[short_e].distance << std::endl;
-  // sqrt(s.squared_length());
-  return std::make_pair((*g)[short_e].distance, seg);
+
+  KERNEL::Segment_2 seg;
+  if (found) {
+    Segment_Visibility_Graph::mygraph_t *g = seg_vis_graph->g;
+    KERNEL::Point_2 p1((*g)[short_e].p_x, (*g)[short_e].p_y);
+    KERNEL::Point_2 p2((*g)[short_e].p_x2, (*g)[short_e].p_y2);
+    KERNEL::Segment_2 seg2(p1, p2);
+    seg = seg2;
+    std::cout << seg << std::endl;
+    std::cout << "graph distance " << (*g)[short_e].distance << std::endl;
+    final_shortest_distance = (*g)[short_e].distance;
+  }
+
+  std::cout << " checking direct visibility " << std::endl;
+  bool tr = (*seg_to_seg_visible)[v_i][s_i];
+  double shortest_distance = -1;
+  if (v_i < seg_to_seg_visible->size() &&
+      s_i < (*seg_to_seg_visible)[v_i].size() &&
+      (*seg_to_seg_visible)[v_i][s_i]) {
+    if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+      M_INFO2("Segments VISIBLE %d-%d - checking distances\n", v_i, s_i);
+    }
+    shortest_distance = (*seg_to_seg_distance)[v_i][s_i];
+    if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+      M_INFO2("shortest_distance %f \n", shortest_distance);
+    }
+    if (shortest_distance < final_shortest_distance ||
+        final_shortest_distance == -1) {
+      seg = (*seg_to_seg_segments)[v_i][s_i];
+      final_shortest_distance = shortest_distance;
+    }
+  }
+
+  return std::make_pair(final_shortest_distance, seg);
 }
 
 std::list<KERNEL::Segment_2>
@@ -1709,7 +1762,6 @@ int Polygon_Environment::get_segment_index_for_point(VisiLibity::Point p) {
 
 void Polygon_Environment::compute_visibility_polygon_at_vertex(
     VisiLibity::Point &p) {
-  // M_INFO3("Processing vertex\n");
   p.snap_to_boundary_of(*my_environment, _visi_epsilon);
   p.snap_to_vertices_of(*my_environment, _visi_epsilon);
   VisiLibity::Visibility_Polygon vis_poly =

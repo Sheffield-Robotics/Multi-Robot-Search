@@ -126,7 +126,7 @@ namespace lineclear
         
         int get_line_cost( Segment &s );
         
-        void fix_index(int &i) {
+        inline void fix_index(int &i) {
             if ( _polygon->size() <= 0 ) { return; }
             while ( i < 1 ) {
                 i = i + int(_polygon->size());

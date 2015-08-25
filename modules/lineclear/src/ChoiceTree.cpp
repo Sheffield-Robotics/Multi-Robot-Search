@@ -80,7 +80,7 @@ void ChoiceTree::init_choice_tree() {
                             c = _pol_env->get_split_cost(i-1, i+k, o, range);  
                             not_skipped++;
                         } else {
-                            std::cout << "  skipped ";
+                            std::cout << "  skipped " << std::endl;
                             skipped++;
                         }
                         M_INFO2_D(DEBUG_CHOICETREE,3,"c=%d \n ",c);

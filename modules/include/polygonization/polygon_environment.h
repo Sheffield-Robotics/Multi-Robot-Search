@@ -15,7 +15,7 @@
 #include <list>
 #include <limits>
 
-#define DEBUG_POLYGON_ENVIRONMENT 5
+#define DEBUG_POLYGON_ENVIRONMENT 1
 #define DEBUG_POLYGONENVIRONMENT 0
 #define DEBUG_POLYGON_ENVIRONMENT_PRINT 0
 #define DEBUG_POLYGON_ENVIRONMENT_VISI 0
@@ -74,7 +74,7 @@ public:
   void process_master_polygon();
   void compute_visibility_polygon_at_vertex(VisiLibity::Point &p);
   VisiLibity::Point get_visi_vertex(int i);
-  bool index_bound_check(int i);
+  inline bool index_bound_check(int i) {return (0 <= i && i < master_polygon->size());};
   int get_segment_index_for_point(VisiLibity::Point p);
 
   int is_endpoint(KERNEL::Point_2 p);
@@ -162,7 +162,7 @@ public:
 
   bool is_k_in_front(std::list<KERNEL::Segment_2> &l, int k);
 
-  void fix_index(int &i) {
+  inline void fix_index(int &i) {
     if (master_polygon->size() <= 0) {
       return;
     }
