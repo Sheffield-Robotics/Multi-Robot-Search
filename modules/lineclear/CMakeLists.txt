@@ -81,3 +81,21 @@ target_link_libraries(lineclear_gui_exe
     ${OPENGL_LIBRARIES}
     ${JPEG_LIBRARIES}
     ${YAMLCPP_LIBRARY})
+
+set(experiments_exe_SRC ${lineclear_SRC} src/Experiments.cxx)
+
+add_executable(experiments_exe ${experiments_exe_SRC} ${lineclear_QT_header})
+target_link_libraries(experiments_exe 
+    gui
+    utilities hungarian heightmap planner polygonization 
+    agents lineclear uavmodel
+    ${QT_LIBRARIES}
+    ${GEOTIFF_LIBRARY}
+    ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES}
+    ${TIFF_LIBRARIES}
+    ${QGLVIEWER_LIBRARY}
+    ${Boost_LIBRARIES}
+    ${OpenCV_LIBS}
+    ${OPENGL_LIBRARIES}
+    ${JPEG_LIBRARIES}
+    ${YAMLCPP_LIBRARY})
