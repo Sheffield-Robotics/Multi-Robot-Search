@@ -330,5 +330,4 @@ inline double normalize_radian(double theta)
 }
 
 
-
 #endif

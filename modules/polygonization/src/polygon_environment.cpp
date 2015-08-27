@@ -508,7 +508,9 @@ int Polygon_Environment::get_block_cost(int i, int j, double r) {
   }
   double d = this->get_block_distance(i, j);
   int cost = int(ceil(d / double(r)));
-  std::cout << "get_block_cost " << i << "-" << j << " " << cost << std::endl;
+  if (DEBUG_POLYGON_ENVIRONMENT >= 2) {
+    std::cout << "get_block_cost " << i << "-" << j << " " << cost << std::endl;
+  }
   return cost;
 }
 

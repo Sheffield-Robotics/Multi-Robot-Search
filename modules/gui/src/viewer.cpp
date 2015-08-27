@@ -2,6 +2,7 @@
 #include "gui/viewer.h"
 #include "gui/glHelpers.h"
 #include "utilities/misc.h"
+
 #include "utilities/math/bresenham.h"
 #include "heightmap/visibility.h"
 #include "gui/jpegImage.h"
@@ -968,6 +969,7 @@ bool Viewer::loadHeightmapFromTIFF(const string &filename) {
   _lastMapPureFileName = getPureFilename(filename);
 
   // Load geotiff file
+  
   if (!_geo->loadGeoTiff(filename)) {
     M_ERR("Error loading geo map\n");
     return false;

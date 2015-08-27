@@ -191,6 +191,8 @@ int main(int argc, char** argv)
          // Load Height Map
          if (tiffFilename != "")
             ret = viewer->loadHeightmapFromTIFF(tiffFilename);
+         else 
+            ret = viewer->loadHeightmapFromTIFF("");
          if (imageTiffFilename != "") {
             ret = viewer->loadImageMapFromTIFF(imageTiffFilename);
             if (ret) M_INFO3("Loaded image map from %s\n",imageTiffFilename.c_str());
