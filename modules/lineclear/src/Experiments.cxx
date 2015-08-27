@@ -25,6 +25,7 @@ int main(int argc, char **argv) {
   string fname_yaml = "../maps/default.yaml";
   Yaml_Config::load_yaml_file_into_param(fname_yaml.c_str());
 
+  srand(time(NULL));
   string basefilename = random_string(20);
 
   // Generating a random polygon
