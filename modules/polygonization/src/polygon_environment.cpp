@@ -439,7 +439,7 @@ bool Polygon_Environment::is_necessary_block(int i, int j) {
   // determine which side of the choice set is contaminated
   // and which is cleared
   if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
-    M_INFO3("is_necessary_block(i=%d,j=%d)",i,j);
+    M_INFO3("is_necessary_block(i=%d,j=%d)\n",i,j);
   }
   int original_i = i, original_j = j;
   fix_index(i);
@@ -467,6 +467,9 @@ bool Polygon_Environment::is_necessary_block(int i, int j) {
 
   // blocks that contain no contaminated obstacle indices are necessary!
   double d;
+  if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+    M_INFO3("getting get_shortest_path\n",i,j);
+  }
   std::list<KERNEL::Segment_2> p = get_shortest_path(i, j, d);
   if (p.size() <= 1)
     return true;

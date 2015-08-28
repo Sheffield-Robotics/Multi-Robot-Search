@@ -651,6 +651,21 @@ void Viewer::ask_for_ijk() {
   std::cin >> vis_graph_k;
   double cost1, cost2;
   int split_point_index;
+
+  std::cout << "is necessary? "
+            << _pol->is_necessary_split(vis_graph_i, vis_graph_j, vis_graph_k)
+            << std::endl;
+
+  _pol->fix_index(vis_graph_i);
+  _pol->fix_index(vis_graph_j);
+  _pol->fix_index(vis_graph_k);
+  vis_graph_i--;
+  vis_graph_j--;
+  vis_graph_k--;
+  std::cout
+      << "fixed indices to use poly addressing (from choice set addressing)"
+      << std::endl << vis_graph_i << " " << vis_graph_j << " "
+      << vis_graph_k << " " << std::endl;
   split_point_list = _pol->shortest_split_costs(
       vis_graph_i, vis_graph_j, vis_graph_k, cost1, cost2, split_point_index);
 }
@@ -969,7 +984,7 @@ bool Viewer::loadHeightmapFromTIFF(const string &filename) {
   _lastMapPureFileName = getPureFilename(filename);
 
   // Load geotiff file
-  
+
   if (!_geo->loadGeoTiff(filename)) {
     M_ERR("Error loading geo map\n");
     return false;
@@ -2168,12 +2183,12 @@ void Viewer::drawVisibilityPolygon() {
   int y = ceil(poin.y());
   double wx, wy, height = 0, h = 0;
   if (!_map->pointInMap(x, y)) {
-    
+
   } else {
-      _map->grid2world(wx, wy, x, y);
-      height = _map->getCellsMM()[x][y].getHeight() / 1000.0;
-      h = _vis->getPursuerHeight() + 1.0;
-  }    
+    _map->grid2world(wx, wy, x, y);
+    height = _map->getCellsMM()[x][y].getHeight() / 1000.0;
+    h = _vis->getPursuerHeight() + 1.0;
+  }
   glColor3f(0.0, 1.0, 1.0);
   glLineWidth(3.0);
   drawSphere(0.3, wx, wy, height + h);
