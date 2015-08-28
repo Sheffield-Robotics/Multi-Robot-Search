@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 2.6)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../../bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ../../lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ../../lib)
+
 project(lineclear)
 
 file(GLOB lineclear_SRC
@@ -7,17 +11,30 @@ file(GLOB lineclear_SRC
     "src/*.c"
 )
 
+
+
 add_library(lineclear ${lineclear_SRC})
 
 message(${lineclear_SRC})
 
 EXECUTE_PROCESS( COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE ARCHITECTURE )
-#set(CMAKE_OSX_ARCHITECTURES ${ARCHS_STANDARD_64_BIT})
+message( STATUS "Architecture: ${ARCHITECTURE}" )
+set(CMAKE_CXX_FLAGS "-pipe -Os -stdlib=libc++")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../../cmake/")
-
 if(APPLE)
-#    set(CMAKE_CXX_FLAGS "-pipe -Os -I/opt/local/include -arch x86_64") 
-#    set(CMAKE_EXE_LINKER_FLAGS "-L/opt/local/lib -Wl,-headerpad_max_install_names -arch x86_64 -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib")
+    include(CheckCXXCompilerFlag)
+    CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+    CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+    if(COMPILER_SUPPORTS_CXX11)
+    	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    elseif(COMPILER_SUPPORTS_CXX0X)
+    	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    else()
+      message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
+    endif()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/opt/local/include")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -arch x86_64") #i386
+    set(CMAKE_EXE_LINKER_FLAGS "-L/opt/local/lib -Wl,-headerpad_max_install_names -arch x86_64 -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib")
 endif()
 
 include_directories(../include)
@@ -52,7 +69,7 @@ set(lineclear_exe_SRC ${lineclear_SRC} src/main.cxx)
 
 add_executable(lineclear_exe ${lineclear_exe_SRC} ${lineclear_QT_header})
 target_link_libraries(lineclear_exe 
-    gui utilities hungarian heightmap planner polygonization 
+    utilities hungarian heightmap planner polygonization 
     agents lineclear uavmodel
     ${QT_LIBRARIES}
     ${GEOTIFF_LIBRARY}

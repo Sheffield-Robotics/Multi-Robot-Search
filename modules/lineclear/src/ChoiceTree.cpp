@@ -44,7 +44,9 @@ void ChoiceTree::init_choice_tree() {
     _cost_updated[k] = new bool *[_n + 1];
     std::cout << "   k=" << k << std::endl;
     for (int i = 1; i <= _n; ++i) {
-      // std::cout << "   k=" << k << "   i=" << i << std::endl;
+      if ( DEBUG_CHOICETREE >= 2 ) {
+        std::cout << "   k=" << k << "   i=" << i << std::endl;
+      }
       _cost_updated[k][i] = new bool[k + 1];
       _choiceSetMatrix[k][i] = new ChoiceSet(_n, i, k);
       int b;
@@ -54,6 +56,7 @@ void ChoiceTree::init_choice_tree() {
         if (_pol_env->is_necessary_block(i - 1, i + k)) {
           b = _pol_env->get_block_cost(i - 1, i + k, range);
         } else {
+          M_INFO1_D(DEBUG_CHOICETREE, 2, "Block not necessary %d \n ", b);
           b = -1;
         }
       } else {
@@ -90,6 +93,10 @@ void ChoiceTree::init_choice_tree() {
             _choiceSetMatrix[k][i]->set_c_at(j, c);
           }
         }
+        // if (!(*(_choiceSetMatrix[k][i])).have_one_good_choice) {
+//             _choiceSetMatrix[k][i]->set_b(-1);
+//
+//         }
       }
     }
   }
@@ -1078,6 +1085,9 @@ double ChoiceTree::average_n_cutsequences_stats(double &proper_average, std::vec
     for (int i = 1; i <= _n; ++i) {
       int n_cut_seqs = this->get_choice_set_at(i, k)->cut_sequences_size();
       if (this->get_choice_set_at(i, k)->get_b() != -1) {
+        if ( n_cut_seqs == 0 ) {
+          M_ERR("No cut sequences in choice set k=%d i=%d \n",k,i);
+        }
         l++;
         pavg += n_cut_seqs;
       }
@@ -1099,8 +1109,8 @@ double ChoiceTree::average_n_cutsequences_stats(double &proper_average, std::vec
     pavg2 = pavg2 / ll;
   }
   proper_average = pavg2;
-
-  n_choicesets_with_n_cutsequences.resize(n_cut_seqs_max);
+  std::cout << "n_cut_seqs_max " << n_cut_seqs_max << std::endl;
+  n_choicesets_with_n_cutsequences.resize(n_cut_seqs_max+1);
   for (auto &&i : n_choicesets_with_n_cutsequences) {
     i = 0;
   }
@@ -1111,6 +1121,9 @@ double ChoiceTree::average_n_cutsequences_stats(double &proper_average, std::vec
         n_choicesets_with_n_cutsequences[n_cut_seqs]++;
       }
     }
+  }
+  for (auto &&i : n_choicesets_with_n_cutsequences) {
+    std::cout << " " << i << ",";
   }
 
   return avg2;
@@ -1146,10 +1159,14 @@ void ChoiceTree::process_set(int i, int k) {
     std::cout << " ********______Processing set " << i << ":" << k;
     std::cout << std::endl;
   }
-  // TODO: instead of best cut sequence take many
-  // Is this TODO still relevant?
 
   ChoiceSet *cs = this->get_choice_set_at(i, k);
+  if ( cs->get_b() == -1 ) {
+    if (DEBUG_CHOICETREE >= 2) {
+      std::cout << " b too low" << cs->get_b() << std::endl;
+    }
+    return;
+  }
   // CutSequence* best_cs = NULL;
   // int best_j = 0;
   // int min_mu = -1;
@@ -1174,6 +1191,7 @@ void ChoiceTree::process_set(int i, int k) {
                 << " cut sequences " << std::endl;
       std::cout << " CS right has " << cs_r->cut_sequences_size()
                 << " cut sequences " << std::endl;
+      
     }
 
     CutSequence *cut_seq_l, *cut_seq_r;
@@ -1379,7 +1397,7 @@ CutSequence *ChoiceTree::new_cutsequence_from(ChoiceSet *cs, int j, int b_l,
 
 ChoiceSet *ChoiceTree::get_choice_set_at(int i, int k) {
   _e->fix_index(i);
-  if (DEBUG_CHOICETREE >= 3) {
+  if (DEBUG_CHOICETREE >= 5) {
     std::cout << "get_choice_set_at fixed " << i << ":" << k << std::endl;
   }
   if (k == 0 || i == 0) {
@@ -1410,7 +1428,7 @@ bool ChoiceTree::assert_indices(int i, int k) {
 }
 
 ChoiceSet *ChoiceTree::get_optimal_choice_set(int &best_start) {
-  std::cout << " get_optimal_choice_set " << std::endl;
+  //std::cout << " get_optimal_choice_set " << std::endl;
   ChoiceSet *choice_set;
   ChoiceSet *best_choice_set = NULL;
   CutSequence *cut_seq;
@@ -1456,12 +1474,12 @@ ChoiceSet *ChoiceTree::get_optimal_choice_set(int &best_start) {
 }
 
 CutSequence *ChoiceTree::get_optimal_cut_sequence(int &best_start) {
-  std::cout << " get_optimal_cut_sequence " << std::endl;
+  //std::cout << " get_optimal_cut_sequence " << std::endl;
   return get_optimal_choice_set(best_start)->get_best_cut_sequence();
 }
 
 std::list<int> ChoiceTree::get_optimal_obstacle_sequence(int &best_start) {
-  std::cout << " get_optimal_obstacle_sequence " << std::endl;
+  //std::cout << " get_optimal_obstacle_sequence " << std::endl;
   return get_optimal_cut_sequence(best_start)->get_obstacle_sequence();
 }
 

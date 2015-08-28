@@ -1,6 +1,6 @@
 ---
 #number of polygon vertices for a randomly generated polygon
-poly_n: 10  
+poly_n: 20  
 classify_everything_as_flat_ground: 0
 # This option if true causes the classifier to ignore any slope
 classify_everything_as_flat_ground: 0
