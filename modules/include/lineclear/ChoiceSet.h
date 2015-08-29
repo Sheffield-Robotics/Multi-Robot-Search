@@ -53,6 +53,9 @@ class ChoiceSet {
         if ( 0 <= j && j < _k ) {
             _c[j] = c;
         }
+        if ( c != -1 ) {
+          have_one_good_choice = true;
+        }
     }
 
     void set_all_c( int c ) {
@@ -92,6 +95,9 @@ class ChoiceSet {
     void add_cut_sequence( CutSequence& cs );
     void add_cut_sequence( CutSequence& cs, int j );
     void remove_dominated();
+    
+    bool have_one_good_choice;
+    
   private:
     
     int _n; // number of obstacles in E (needed for index cycles)
@@ -99,6 +105,7 @@ class ChoiceSet {
     int _k; // number of indices in choice set
     int _b; // cost of blocking the choice set
     int* _c; // array (size k) for costs of each choice 
+    
     
     // cut sequence list for each choice
     vector< pair<CutSequence,int> > _sequences; 

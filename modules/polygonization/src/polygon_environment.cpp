@@ -422,6 +422,9 @@ double Polygon_Environment::get_block_distance(int i, int j) {
 bool Polygon_Environment::is_necessary_split(int i, int j, int k) {
   // splits are only necessary if the block cost between i,k and j,k
   // are not touching another obstacle
+  if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+    M_INFO3("is_necessary_split(i=%d,j=%d,k=%d)\n",i,j,k);
+  }
   return is_necessary_block(i, k) && is_necessary_block(j, k);
 
   // fix_index(i);fix_index(j);fix_index(k);
@@ -435,13 +438,18 @@ bool Polygon_Environment::is_necessary_split(int i, int j, int k) {
 bool Polygon_Environment::is_necessary_block(int i, int j) {
   // determine which side of the choice set is contaminated
   // and which is cleared
+  if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+    M_INFO3("is_necessary_block(i=%d,j=%d)\n",i,j);
+  }
   int original_i = i, original_j = j;
   fix_index(i);
   fix_index(j); // fixes the index to be within range
   i--;
   j--; // fixes the 1 to 0 address issue (choice sets start at 1, segment
        // indices at 0)
-
+  if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+    M_INFO3("is_necessary_block( fixed i=%d, fixed j=%d)\n",i,j);
+  }
   // same obstacle always has a 0 block
   if (i == j)
     return true;
@@ -459,6 +467,9 @@ bool Polygon_Environment::is_necessary_block(int i, int j) {
 
   // blocks that contain no contaminated obstacle indices are necessary!
   double d;
+  if ( DEBUG_POLYGON_ENVIRONMENT >= 5 ) {
+    M_INFO3("getting get_shortest_path\n",i,j);
+  }
   std::list<KERNEL::Segment_2> p = get_shortest_path(i, j, d);
   if (p.size() <= 1)
     return true;
@@ -661,7 +672,9 @@ std::list<KERNEL::Segment_2> Polygon_Environment::shortest_split_costs(
         (a1 == CGAL::OBTUSE && a2 == CGAL::OBTUSE) ||
         (a1 == CGAL::OBTUSE && o2 == CGAL::RIGHT_TURN) ||
         (a1 == CGAL::ACUTE && o1 == CGAL::RIGHT_TURN && a2 == CGAL::OBTUSE)) {
-      std::cout << " Whole edge length used " << std::endl;
+      if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+        std::cout << " Whole edge length used " << std::endl;
+      }
       // we can skip the steps below and just return the length of edge k
       cost1 = sqrt(CGAL::to_double(master_polygon->edge(k).squared_length()));
       cost2 = 0;
@@ -1436,7 +1449,9 @@ Polygon_Environment::vertex_to_segment_visible_distance(int v_i, int s_i) {
     final_shortest_distance = (*g)[short_e].distance;
   }
 
-  std::cout << " checking direct visibility " << std::endl;
+  if (DEBUG_POLYGON_ENVIRONMENT >= 3) {
+    std::cout << " checking direct visibility " << std::endl;
+  }
   bool tr = (*seg_to_seg_visible)[v_i][s_i];
   double shortest_distance = -1;
   if (v_i < seg_to_seg_visible->size() &&
