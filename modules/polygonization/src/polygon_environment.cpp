@@ -962,11 +962,6 @@ KERNEL::Point_2 Polygon_Environment::find_same_angle_point(KERNEL::Point_2 a1,
   KERNEL::Vector_2 v1(a1, b1);
   KERNEL::Vector_2 v2(a2, b2);
   KERNEL::Vector_2 v(b1, b2);
-  // std::cout << a1 << std::endl;
-  // std::cout << a2 << std::endl;
-  // std::cout << b1 << std::endl;
-  // std::cout << b2 << std::endl;
-  // std::cout << l << std::endl;
 
   double hl = 0, hb = 0;
   bool v1_longer = false;
