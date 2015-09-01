@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
   
   for (int exp_run = 0; exp_run < 10; exp_run++ ) {
     std::cout << " EXP RUN " << exp_run << std::endl;
-    for ( n_polies = 50; n_polies <= 200; n_polies=n_polies+50 ) {
+    for ( n_polies = 250; n_polies <= 400; n_polies=n_polies+50 ) {
       std::cout << " n_polies " << n_polies << std::endl;
       srand(time(NULL));
       string basefilename = random_string(20);
@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
       fname = basefilename + ".stats";
       std::ofstream statFile;
       statFile.open(fname.c_str(), std::ios::out);
-      statFile << Yaml_Config::yaml_param["poly_n"].as<int>();
+      statFile << n_polies;
       statFile << ", " << _ct->n_fully_skipped;
       statFile << ", " << _ct->n_skipped;
       statFile << ", " << _ct->n_not_skipped;
