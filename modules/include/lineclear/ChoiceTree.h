@@ -37,6 +37,8 @@ typedef std::map<std::pair<int, int>, Pos_list> Sweep_state;
 class ChoiceTree {
 
 public:
+  ChoiceTree();
+  ChoiceTree(int n);
   ChoiceTree(Environment *e);
   ChoiceTree(Environment *e, Visibility *v);
   ChoiceTree(Environment *e, Visibility *v,
@@ -87,6 +89,16 @@ public:
       return true;
     }
     return false;
+  }
+  
+  inline void fix_index(int &i) {
+      if ( _n <= 0 ) { return; }
+      while ( i < 1 ) {
+          i = i + _n;
+      }
+      while ( i > _n ) {
+          i = i - _n;
+      }
   }
 
   std::vector<Pos_list> all_frequin_poses;

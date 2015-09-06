@@ -6,6 +6,22 @@
 namespace lineclear {
 using namespace Yaml_Config;
 
+ChoiceTree::ChoiceTree() {
+  _e = NULL;
+  _n = 1;
+  _sg = NULL;
+  _zero_choiceset = new ChoiceSet();
+  start_step_for_split_obstacle.resize(_n + 1);
+}
+
+ChoiceTree::ChoiceTree(int n) {
+  _e = NULL;
+  _n = n;
+  _sg = NULL;
+  _zero_choiceset = new ChoiceSet();
+  start_step_for_split_obstacle.resize(_n + 1);
+}
+
 ChoiceTree::ChoiceTree(Environment *e) {
   _e = e;
   _n = _e->get_obstacle_number();
@@ -139,8 +155,8 @@ void ChoiceTree::update_costs(int i, int k) {
   int ii = i - 1;
   int kk = i + k;
   int b;
-  _e->fix_index(ii);
-  _e->fix_index(kk);
+  fix_index(ii);
+  fix_index(kk);
   if (_e->are_adjacent(ii, kk)) {
     b = 0;
   } else {
@@ -160,7 +176,7 @@ void ChoiceTree::update_costs(int i, int k, int j) {
   // c = _e->get_shortest_extension_cost(i-1, i+k, o);
 
   // std::cout << " Updating costs " << i <<":"<<k<<" j=" << j <<std::endl;
-  //_e->fix_index(i);
+  //fix_index(i);
   int o = _choiceSetMatrix[k][i]->get_obstacle_for_choice(j);
   Segment l1, l2;
   int c = _e->get_shortest_extension(i - 1, i + k, o, l1, l2);
@@ -963,10 +979,9 @@ void ChoiceTree::load_from_file(std::string filename) {
     std::cout << " LOADING FILE " << filename.c_str() << std::endl;
   }
 
-  double new_sensing_diameter = 2 * _v->get_max_steps();
+  double new_sensing_diameter = 1;//2 * _v->get_max_steps();
   // previously Params::g_new_sensing_range;
-  std::cout << " new_sensing_diameter " << new_sensing_diameter << std::endl;
-
+  
   std::string line;
   std::istringstream in_Stream;
 
@@ -974,6 +989,7 @@ void ChoiceTree::load_from_file(std::string filename) {
   in_Stream.str(line);
   in_Stream >> _n;
   std::cout << " LOADING WITH " << _n << " obstacles." << std::endl;
+  start_step_for_split_obstacle.resize(_n + 1);
 
   // build the choiceSetMatrix
   _choiceSetMatrix = new ChoiceSet **[_n];
@@ -1100,7 +1116,7 @@ double ChoiceTree::average_n_cutsequences_stats(double &proper_average, std::vec
     if (l > 0) {
       pavg = pavg / l;
       pavg2 += pavg;
-      ll++;
+        ll++;
     }
     avg2 += avg;
   }
@@ -1396,7 +1412,7 @@ CutSequence *ChoiceTree::new_cutsequence_from(ChoiceSet *cs, int j, int b_l,
 }
 
 ChoiceSet *ChoiceTree::get_choice_set_at(int i, int k) {
-  _e->fix_index(i);
+  fix_index(i);
   if (DEBUG_CHOICETREE >= 5) {
     std::cout << "get_choice_set_at fixed " << i << ":" << k << std::endl;
   }
@@ -1410,7 +1426,7 @@ ChoiceSet *ChoiceTree::get_choice_set_at(int i, int k) {
 }
 
 bool ChoiceTree::get_cost_updated(int i, int k, int j) {
-  _e->fix_index(i);
+  fix_index(i);
   if (k == 0 || i == 0) {
     return true;
   }

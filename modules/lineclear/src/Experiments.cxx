@@ -25,12 +25,11 @@ int main(int argc, char **argv) {
   string fname_yaml = "../maps/default.yaml";
   Yaml_Config::load_yaml_file_into_param(fname_yaml.c_str());
   int n_polies; 
-  
+  srand(time(NULL));
   for (int exp_run = 0; exp_run < 10; exp_run++ ) {
     std::cout << " EXP RUN " << exp_run << std::endl;
-    for ( n_polies = 50; n_polies <= 200; n_polies=n_polies+50 ) {
+    for ( n_polies = 5; n_polies <= 45; n_polies=n_polies+5 ) {
       std::cout << " n_polies " << n_polies << std::endl;
-      srand(time(NULL));
       string basefilename = random_string(20);
 
       // Generating a random polygon
@@ -52,7 +51,8 @@ int main(int argc, char **argv) {
       std::list<int> obstacle_sequence;
       obstacle_sequence = _ct->get_optimal_obstacle_sequence(first_obstacle);
       obstacle_sequence.push_front(first_obstacle);
-      M_INFO1("OPTIMAL COST %d \n", _ct->get_optimal_cost());
+      int optimal_cost = _ct->get_optimal_cost();
+      M_INFO1("OPTIMAL COST %d \n", optimal_cost);
 
       string fname = basefilename + ".ose";
       std::ofstream outFile;
@@ -62,18 +62,21 @@ int main(int argc, char **argv) {
         outFile << i << " ";
       }
       outFile.close();
+      int final_cost = _ct->get_optimal_cut_sequence(first_obstacle)->get_final_cost();
       std::cout << "final mu"
-                << _ct->get_optimal_cut_sequence(first_obstacle)->get_final_cost()
+                << final_cost
                 << std::endl;
 
       fname = basefilename + ".stats";
       std::ofstream statFile;
       statFile.open(fname.c_str(), std::ios::out);
-      statFile << Yaml_Config::yaml_param["poly_n"].as<int>();
+      statFile << n_polies;
       statFile << ", " << _ct->n_fully_skipped;
       statFile << ", " << _ct->n_skipped;
       statFile << ", " << _ct->n_not_skipped;
-  
+      statFile << ", " << final_cost;
+      statFile << ", " << _ct->get_optimal_cost();
+      
 
       double proper_average;
       std::vector<int> n_choicesets_with_n_cutsequences;
@@ -86,6 +89,11 @@ int main(int argc, char **argv) {
       for ( const int &i : n_choicesets_with_n_cutsequences ) {
         statFile << i << ", ";
       }
+      
+      statFile << std::endl;
+      statFile << final_cost;
+      statFile << ", " << optimal_cost;
+      
       statFile.close();
     }
   }
