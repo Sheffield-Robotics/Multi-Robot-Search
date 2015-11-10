@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
   
   for (int exp_run = 0; exp_run < 10; exp_run++ ) {
     std::cout << " EXP RUN " << exp_run << std::endl;
-    for ( n_polies = 250; n_polies <= 400; n_polies=n_polies+50 ) {
+    for ( n_polies = 400; n_polies <= 400; n_polies=n_polies+50 ) {
       std::cout << " n_polies " << n_polies << std::endl;
       srand(time(NULL));
       string basefilename = random_string(20);
@@ -86,6 +86,8 @@ int main(int argc, char **argv) {
       for ( const int &i : n_choicesets_with_n_cutsequences ) {
         statFile << i << ", ";
       }
+      statFile << std::endl;
+      statFile << _ct->get_optimal_cut_sequence(first_obstacle)->get_final_cost();
       statFile.close();
     }
   }
